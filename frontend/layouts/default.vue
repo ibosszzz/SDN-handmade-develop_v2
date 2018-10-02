@@ -13,6 +13,10 @@
                 <router-link active-class="active" class="nav-link" aria-current="true" data-toggle="false" to="/graph">
                   <i class="fe fe-box"></i> Graph</router-link>
               </li>
+	      <li class="nav-item">
+                <router-link active-class="active" class="nav-link" aria-current="true" data-toggle="false" to="/show_routing">
+                  <i class="fe fe-box"></i> Routing</router-link>
+              </li>
               <li class="nav-item">
                 <a href="javascript:void(0)" class="nav-link" data-toggle="dropdown">
                   <i class="fe fe-box"></i> Device</a>
