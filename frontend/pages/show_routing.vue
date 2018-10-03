@@ -47,25 +47,6 @@
 import NetworkGraph from "@/components/NetworkGraph.vue";
 import * as jsnx from "jsnetworkx";
 
-const ROUTE_PROTOCOL = {
-  1: "other",
-  2: "local",
-  3: "netmgmt",
-  4: "icmp",
-  5: "egp",
-  6: "ggp",
-  7: "hello",
-  8: "rip",
-  9: "isIs",
-  10: "esIs",
-  11: "ciscoIgrp",
-  12: "bbnSpfIgp",
-  13: "ospf",
-  14: "bgp",
-  15: "idpr",
-  16: "ciscoEigrp"
-};
-
 export default {
   data() {
     return {
@@ -139,7 +120,7 @@ export default {
     getNetwork() {
       for (var i = 0; i < this.routes.length; i++) {
 	for (var j = 0; j < this.routes[i].length; j++) {
-	  if (this.networks.indexOf(this.routes[i][j].dst) < 0) {
+	  if (this.networks.indexOf(this.routes[i][j].dst) < 0 && this.routes[i][j].dst != "0.0.0.0" && this.routes[i][j].mask != "255.255.255.255") {
             this.networks.push(this.routes[i][j].dst);
       	  }
 	}
@@ -187,9 +168,6 @@ export default {
     async fetchGraph() {
       this.graphRawData = await this.$axios.$get("link");
       this.updateGraph();
-    },
-    getRouteProtoText(proto) {
-      return ROUTE_PROTOCOL[proto];
     },
     updateGraph() {
       if (this.graphRawData.links) {
