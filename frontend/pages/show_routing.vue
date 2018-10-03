@@ -12,7 +12,7 @@
                 <label class="form-label">Source</label>
                 <select @change="onActionChange(i)" v-model="source" class="form-control">
                   <option value="0" disabled>Select source</option>
-                  <option v-for="network in networks" :key="network" :value="network">{{ network }}</option>
+                  <option v-for="network in networks" :key="network" :value="network">{{network}}/{{ mask[networks.indexOf(network)] }}</option>
                 </select>
               </div>
             </div>
@@ -21,7 +21,7 @@
                 <label class="form-label">Destination</label>
                 <select @change="onActionChange(i)" v-model="destination" class="form-control">
                   <option value="0" disabled>Select destination</option>
-                  <option v-for="network in networks" :key="network" :value="network">{{ network }}</option>
+                  <option v-for="network in networks" :key="network" :value="network">{{ network }}/{{ mask[networks.indexOf(network)] }}</option>
                 </select>
               </div>
             </div>
@@ -46,6 +46,7 @@
 <script>
 import NetworkGraph from "@/components/NetworkGraph.vue";
 import * as jsnx from "jsnetworkx";
+import ipaddrMixin from "@/mixins/ipaddr";
 
 export default {
   data() {
@@ -68,6 +69,7 @@ export default {
       source: "",
       destination: "",
       networks: [],
+      mask:[],
       links: [],
       deviceID: "",
       addlink: [],
@@ -75,6 +77,10 @@ export default {
   },
   components: {
     NetworkGraph
+  },
+  mixins: [ipaddrMixin],
+  async mounted(){
+    await this.fetchData();
   },
   methods: {
     async onSubmit(n) {
@@ -122,6 +128,7 @@ export default {
 	for (var j = 0; j < this.routes[i].length; j++) {
 	  if (this.networks.indexOf(this.routes[i][j].dst) < 0 && this.routes[i][j].dst != "0.0.0.0" && this.routes[i][j].mask != "255.255.255.255") {
             this.networks.push(this.routes[i][j].dst);
+            this.mask.push(this.subnetToCide(this.routes[i][j].mask));
       	  }
 	}
       }
