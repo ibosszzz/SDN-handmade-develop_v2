@@ -135,8 +135,10 @@ export default {
             id: edgeId,
             color: { color, highlight: color }
           };
-          this.graphEdge.push(edge);
-          this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
+          if (link.src_ip != link.dst_ip){
+            this.graphEdge.push(edge);
+            this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
+          }
           if (!nodes_[link.src_node_ip]) {
             let label;
             switch (this.node_label) {
