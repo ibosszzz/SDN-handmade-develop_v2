@@ -128,7 +128,7 @@ export default {
 	for (var j = 0; j < this.routes[i].length; j++) {
 	  if (this.networks.indexOf(this.routes[i][j].dst) < 0 && this.routes[i][j].dst != "0.0.0.0" && this.routes[i][j].mask != "255.255.255.255") {
             this.networks.push(this.routes[i][j].dst);
-            this.mask.push(this.subnetToCide(this.routes[i][j].mask));
+            this.mask.push(this.subnetToCidr(this.routes[i][j].mask));
       	  }
 	}
       }
