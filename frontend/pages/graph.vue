@@ -10,26 +10,13 @@
         </div>
       </div>
     </div>
-    <!-- <div class="col-sm-12 col-md-4">
-      <div class="card">
-        <div class="card-header">
-          Information
-        </div>
-        <div class="card-body">
-          <p>{{ eventName }}</p>
-          <p>{{ nodeSelect }}</p>
-          <pre>
-            {{ information }}
-          </pre>
-        </div>
-      </div>
-    </div> -->
   </div>
 </template>
 
 <script>
 import NetworkGraph from "@/components/NetworkGraph.vue";
 import * as jsnx from "jsnetworkx";
+import ipaddrMixin from "@/mixins/ipaddr";
 
 export default {
   data() {
@@ -46,11 +33,20 @@ export default {
       information: "",
       selectEdge: ["192.168.2.0-192.168.2.1", "192.168.2.2-192.168.2.3"],
       nodeSelect: [],
-      highlightNode: []
+      highlightNode: [],
+      networks: [],
+      mask:[],
+      routes: [],
+      devices: [],
+      check:[]
     };
   },
   components: {
     NetworkGraph
+  },
+  mixins: [ipaddrMixin],
+  async mounted(){
+    await this.fetchData();
   },
   methods: {
     async onClick(param) {
@@ -92,6 +88,36 @@ export default {
     async fetchGraph() {
       this.graphRawData = await this.$axios.$get("link");
       this.updateGraph();
+    },
+    getNetwork() {
+      for (var i = 0; i < this.routes.length; i++) {
+       for (var j = 0; j < this.routes[i].length; j++) {
+         if (this.networks.indexOf(this.routes[i][j].dst) < 0 && this.routes[i][j].dst != "0.0.0.0" && this.routes[i][j].mask != "255.255.255.255") {
+            this.networks.push(this.routes[i][j].dst);
+            this.mask.push(this.subnetToCidr(this.routes[i][j].mask));
+          }
+        }
+      }
+    },
+    getNetworkFromIP(ip, mask) {
+      var check = "";
+      ip = ip.split(".");
+      mask = mask.split(".");
+      for (var i=0; i < mask.length; i++) {
+        if (mask[i] != "255") {
+          ip [i] = parseInt(ip[i], 10).toString(2).padStart(8, "0");
+          mask[i] = parseInt(mask[i], 10).toString(2).padStart(8, "0");
+          for (var j=0; j < mask[i].length; j++){
+            if (mask[i][j] == "0") {
+              check += "0";
+            } else {
+              check += ip[i][j];
+            }
+          }
+          ip[i] = parseInt(check, 2);
+        }
+      }
+      return ip.join(".");
     },
     updateGraph() {
       if (this.graphRawData.links) {
@@ -136,9 +162,14 @@ export default {
             color: { color, highlight: color }
           };
           if (link.src_ip != link.dst_ip){
-            this.graphEdge.push(edge);
-            this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
-          }
+            //this.graphEdge.push(edge);
+            //this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
+          }// else {
+           // edge.from = "192.168.223.0";
+           // edge.to = "192.168.222.1";
+           // edge.label = "";
+           // this.graphEdge.push(edge);
+           // this.graph.addEdge("192.168.223.0", "192.168.222.1");}
           if (!nodes_[link.src_node_ip]) {
             let label;
             switch (this.node_label) {
@@ -168,6 +199,34 @@ export default {
             id++;
           }
         });
+        for (var i=0; i < this.networks.length; i++){
+          if (!nodes_[this.networks[i]]){
+            let label = this.networks[i]+"/"+this.mask[i];
+            nodes_[this.networks[i]] = {
+              id: this.networks[i],
+              value: 1,
+              label: label
+            };
+            id++;
+          }
+          for (var j=0; j < this.devices.length; j++) {
+            for (var k=0; k < this.devices[j].interfaces.length; k++) {
+              if (this.devices[j].interfaces[k].ipv4_address) {
+                if(this.getNetworkFromIP(this.devices[j].interfaces[k].ipv4_address, this.devices[j].interfaces[k].subnet) == this.networks[i]) {
+                  const edge = {
+                    from: this.devices[j].interfaces[k].device_ip,
+                    to: this.networks[i]
+                  }
+                  if (this.check.indexOf(this.networks[i]) < 0 || this.check.indexOf(this.devices[j].interfaces[k].device_ip) - this.check.indexOf(this.networks[i]) != 1) {
+                    this.graphEdge.push(edge);
+                    this.graph.addEdge(this.devices[j].interfaces[k].device_ip, this.networks[i]);
+                    this.check.push(this.networks[i], this.devices[j].interfaces[k].device_ip);
+                  }
+                }
+              }
+            }
+          }
+        };
         this.nodes_ = nodes_;
         this.graphNode = Object.values(nodes_);
       }
@@ -177,6 +236,25 @@ export default {
     // console.log(jsnx)
     this.graph = new jsnx.Graph();
     this.interval = setInterval(() => this.fetchGraph(), 1000);
+    try {
+      let res = await this.$axios.$get("device");
+      this.devices = res.devices;
+      res = await this.$axios.$get("link");
+      this.links = res.links;
+      let res2;
+      let device;
+      for (var i = 0; i < this.devices.length; i++) {
+        device = this.devices[i];
+        res2 = await this.$axios.$get(`routes/${device._id.$oid}`);
+        if (res2) {
+          this.routes.push(res2.routes);
+        }
+      }
+      this.getNetwork();
+    } catch (e) {}
+    this.form = {
+      ...this.propForm
+    };
   },
   beforeDestroy() {
     clearInterval(this.interval);
