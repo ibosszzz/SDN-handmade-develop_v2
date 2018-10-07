@@ -157,19 +157,15 @@ export default {
             to: link.dst_node_ip,
             width: link.link_min_speed / 400000,
             // value: link.src_in_use + link.dst_in_use,
-            label: `${speed.toFixed(2)}%`,
+            label: this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet)+"/"+ this.subnetToCidr(this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet) +"("+ `${speed.toFixed(2)}%` + ")",
             id: edgeId,
             color: { color, highlight: color }
           };
           if (link.src_ip != link.dst_ip){
-            //this.graphEdge.push(edge);
-            //this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
-          }// else {
-           // edge.from = "192.168.223.0";
-           // edge.to = "192.168.222.1";
-           // edge.label = "";
-           // this.graphEdge.push(edge);
-           // this.graph.addEdge("192.168.223.0", "192.168.222.1");}
+            this.check.push(this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet));
+            this.graphEdge.push(edge);
+            this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
+          }
           if (!nodes_[link.src_node_ip]) {
             let label;
             switch (this.node_label) {
@@ -200,27 +196,31 @@ export default {
           }
         });
         for (var i=0; i < this.networks.length; i++){
-          if (!nodes_[this.networks[i]]){
+          if (!nodes_[this.networks[i]] && this.check.indexOf(this.networks[i]) < 0){
             let label = this.networks[i]+"/"+this.mask[i];
             nodes_[this.networks[i]] = {
               id: this.networks[i],
               value: 1,
-              label: label
+              label: label,
+              color: "#FFF"
             };
             id++;
-          }
-          for (var j=0; j < this.devices.length; j++) {
-            for (var k=0; k < this.devices[j].interfaces.length; k++) {
-              if (this.devices[j].interfaces[k].ipv4_address) {
-                if(this.getNetworkFromIP(this.devices[j].interfaces[k].ipv4_address, this.devices[j].interfaces[k].subnet) == this.networks[i]) {
-                  const edge = {
-                    from: this.devices[j].interfaces[k].device_ip,
-                    to: this.networks[i]
-                  }
-                  if (this.check.indexOf(this.networks[i]) < 0 || this.check.indexOf(this.devices[j].interfaces[k].device_ip) - this.check.indexOf(this.networks[i]) != 1) {
-                    this.graphEdge.push(edge);
-                    this.graph.addEdge(this.devices[j].interfaces[k].device_ip, this.networks[i]);
-                    this.check.push(this.networks[i], this.devices[j].interfaces[k].device_ip);
+            for (var j=0; j < this.devices.length; j++) {
+              for (var k=0; k < this.devices[j].interfaces.length; k++) {
+                if (this.devices[j].interfaces[k].ipv4_address) {
+                  if(this.getNetworkFromIP(this.devices[j].interfaces[k].ipv4_address, this.devices[j].interfaces[k].subnet) == this.networks[i]) {
+                    let color = "rgb(144, 238, 144)";
+                    const edge = {
+                      from: this.devices[j].interfaces[k].device_ip,
+                      to: this.networks[i],
+                      id: this.devices[j].interfaces[k].device_ip+this.networks[i],
+                      color: { color, highlight: color },
+                      width: 1544000 / 400000
+                    }
+                    if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
+                      this.graphEdge.push(edge);
+                      this.graph.addEdge(this.devices[j].interfaces[k].device_ip, this.networks[i]);
+                    }
                   }
                 }
               }
