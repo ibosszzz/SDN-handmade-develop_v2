@@ -90,6 +90,7 @@ export default {
       this.click =  1;
       this.deviceID = "";
       this.addlink = [];
+      this.updateGraph();
       this.deviceID = this.getDeviceIDFromNetwork(this.source);
       while (check) {
       	check = this.getNextHopIP();
@@ -144,7 +145,9 @@ export default {
       	for (var j=0; j < this.routes[i].length; j++) {
           if (this.routes[i][j].dst == network && this.routes[i][j].proto == 2) {
             this.deviceID = this.routes[i][j].device_id.$oid;
-            this.deviceID = this.getLink(this.routes[i][j].next_hop, this.routes[i][j].if_index);
+            if (this.check.indexOf(network) >= 0) {
+              this.deviceID = this.getLink(this.routes[i][j].next_hop, this.routes[i][j].if_index);
+            }
             return this.deviceID;
           }
       	}
@@ -187,9 +190,12 @@ export default {
               else if (this.links[i].dst_node_id.$oid == this.routes[j][k].device_id.$oid && this.routes[j][k].dst == this.destination && this.routes[j][k].next_hop == "0.0.0.0") {
                 return this.links[i].dst_node_id.$oid;
               }
+              else {
+                return this.links[i].dst_node_id.$oid;
+              }
             }
           }
-        } 
+        }
       }
     },
     getNetworkFromIP(ip, mask) {
