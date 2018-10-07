@@ -73,6 +73,7 @@ export default {
       links: [],
       deviceID: "",
       addlink: [],
+      check: []
     };
   },
   components: {
@@ -85,10 +86,12 @@ export default {
   methods: {
     async onSubmit(n) {
       let check = true;
+      this.addlink = [];
       this.deviceID = this.getDeviceIDFromNetwork(this.source);
       while (check) {
       	check = this.getNextHopIP();
       }
+      this.updateGraph();
     },
     async onClick(param) {
       this.eventName = "onClick"
@@ -125,49 +128,74 @@ export default {
     },
     getNetwork() {
       for (var i = 0; i < this.routes.length; i++) {
-	for (var j = 0; j < this.routes[i].length; j++) {
-	  if (this.networks.indexOf(this.routes[i][j].dst) < 0 && this.routes[i][j].dst != "0.0.0.0" && this.routes[i][j].mask != "255.255.255.255") {
+	     for (var j = 0; j < this.routes[i].length; j++) {
+	       if (this.networks.indexOf(this.routes[i][j].dst) < 0 && this.routes[i][j].dst != "0.0.0.0" && this.routes[i][j].mask != "255.255.255.255") {
             this.networks.push(this.routes[i][j].dst);
             this.mask.push(this.subnetToCidr(this.routes[i][j].mask));
       	  }
-	}
+	      }
       }
     },
     getDeviceIDFromNetwork(network) {
       for (var i=0; i < this.routes.length; i++) {
-	for (var j=0; j < this.routes[i].length; j++) {
+      	for (var j=0; j < this.routes[i].length; j++) {
           if (this.routes[i][j].dst == network && this.routes[i][j].proto == 2) {
+            this.deviceID = this.routes[i][j].device_id.$oid;
+            this.deviceID = this.getLink(this.routes[i][j].next_hop, this.routes[i][j].if_index);
             return this.routes[i][j].device_id.$oid;
           }
-	}
+      	}
       }
     },
     getNextHopIP () {
       for (var i=0; i < this.routes.length; i++) {
       	if (this.routes[i][0].device_id.$oid == this.deviceID) {
-	  for (var j=0; j < this.routes[i].length; j++) {
-	    if (this.routes[i][j].dst == this.destination) {
-	      if (this.routes[i][j].next_hop == "0.0.0.0") {
-	        return false;
-	      } else {
-			this.deviceID = this.getLink(this.routes[i][j].next_hop);
-			return true;
-	      }
-	    }
-	  }
+      	  for (var j=0; j < this.routes[i].length; j++) {
+      	    if (this.routes[i][j].dst == this.destination) {
+      	      if (this.routes[i][j].next_hop == "0.0.0.0") {
+                this.deviceID = this.getLink(this.routes[i][j].next_hop, this.routes[i][j].if_index);
+      	        return false;
+      	      } else {
+          			this.deviceID = this.getLink(this.routes[i][j].next_hop, this.routes[i][j].if_index);
+          			return true;
+      	      }
+      	    }
+      	  }
       	}
       }
     },
-    getLink (next_hop) {
+    getLink (next_hop, if_index) {
       for (var i=0; i < this.links.length; i++) {
       	if (this.deviceID == this.links[i].src_node_id.$oid && next_hop == this.links[i].dst_ip) {
-      	  this.addlink.push([this.links[i].src_ip, this.links[i].dst_ip]);
+      	  this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
       	  return this.links[i].dst_node_id.$oid;
       	} else if (this.deviceID == this.links[i].dst_node_id.$oid && next_hop == this.links[i].src_ip) {
       	  this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
-      	  return this.links[i].src_node_id.$oid;
-      	}
+      	  return this.links[i].dst_node_id.$oid;
+      	} else if ((this.links[i].src_if_index == if_index && this.deviceID == this.links[i].src_node_id.$oid )||(this.links[i].dst_if_index == if_index && this.deviceID == this.links[i].dst_node_id.$oid) && next_hop == "0.0.0.0") {
+          this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
+        }
       }
+    },
+    getNetworkFromIP(ip, mask) {
+      var check = "";
+      ip = ip.split(".");
+      mask = mask.split(".");
+      for (var i=0; i < mask.length; i++) {
+        if (mask[i] != "255") {
+          ip [i] = parseInt(ip[i], 10).toString(2).padStart(8, "0");
+          mask[i] = parseInt(mask[i], 10).toString(2).padStart(8, "0");
+          for (var j=0; j < mask[i].length; j++){
+            if (mask[i][j] == "0") {
+              check += "0";
+            } else {
+              check += ip[i][j];
+            }
+          }
+          ip[i] = parseInt(check, 2);
+        }
+      }
+      return ip.join(".");
     },
     calculate_usage_percent(src_usage, dst_usage, speed) {
       return Math.max(src_usage, dst_usage) / speed * 100;
@@ -214,15 +242,18 @@ export default {
             to: link.dst_node_ip,
             width: link.link_min_speed / 400000,
             // value: link.src_in_use + link.dst_in_use,
-            label: `${speed.toFixed(2)}%`,
+            label: this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet)+"/"+ this.subnetToCidr(this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet) +"("+ `${speed.toFixed(2)}%` + ")",
             id: edgeId,
             color: { color, highlight: color }
           };
-          for (var i=0; i < this.addlink.length; i++) {
-          	if (link.src_ip != link.dst_ip && this.addlink.indexOf(link.src_ip) >= 0 && this.addlink.indexOf(link.dst_ip) >= 0) {
-    	      this.graphEdge.push(edge);
-              this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
-      	    }
+          if(link.src_ip != link.dst_ip) {
+            this.check.push(this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet));
+            for (var i=0; i < this.addlink.length; i++) {
+            	if (this.addlink.indexOf(link.src_ip) >= 0 && this.addlink.indexOf(link.dst_ip) >= 0) {
+                this.graphEdge.push(edge);
+                this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
+        	    }
+            }
           }
           if (!nodes_[link.src_node_ip]) {
             let label;
@@ -253,6 +284,40 @@ export default {
             id++;
           }
         });
+        if (this.check.indexOf(this.source) < 0 || this.check.indexOf(this.destination) < 0) {
+          for (var i=0; i < this.networks.length; i++){
+            if (!nodes_[this.networks[i]] && this.check.indexOf(this.networks[i]) < 0){
+              let label = this.networks[i]+"/"+this.mask[i];
+              nodes_[this.networks[i]] = {
+                id: this.networks[i],
+                value: 1,
+                label: label,
+                color: "#FFF"
+              };
+              id++;
+              for (var j=0; j < this.devices.length; j++) {
+                for (var k=0; k < this.devices[j].interfaces.length; k++) {
+                  if (this.devices[j].interfaces[k].ipv4_address) {
+                    if(this.getNetworkFromIP(this.devices[j].interfaces[k].ipv4_address, this.devices[j].interfaces[k].subnet) == this.networks[i]) {
+                      let color = "rgb(144, 238, 144)";
+                      const edge = {
+                        from: this.devices[j].interfaces[k].device_ip,
+                        to: this.networks[i],
+                        id: this.devices[j].interfaces[k].device_ip+this.networks[i],
+                        color: { color, highlight: color },
+                        width: 1544000 / 400000
+                      }
+                      if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
+                        this.graphEdge.push(edge);
+                        this.graph.addEdge(this.devices[j].interfaces[k].device_ip, this.networks[i]);
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          };
+        }
         this.nodes_ = nodes_;
         this.graphNode = Object.values(nodes_);
       }
@@ -288,4 +353,3 @@ export default {
   }
 };
 </script>
-
