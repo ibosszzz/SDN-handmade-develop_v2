@@ -73,7 +73,8 @@ export default {
       links: [],
       deviceID: "",
       addlink: [],
-      check: []
+      check: [],
+      click: 0
     };
   },
   components: {
@@ -86,12 +87,14 @@ export default {
   methods: {
     async onSubmit(n) {
       let check = true;
+      this.click =  1;
+      this.deviceID = "";
       this.addlink = [];
       this.deviceID = this.getDeviceIDFromNetwork(this.source);
       while (check) {
       	check = this.getNextHopIP();
       }
-      this.updateGraph();
+      this.click = 0;
     },
     async onClick(param) {
       this.eventName = "onClick"
@@ -142,7 +145,7 @@ export default {
           if (this.routes[i][j].dst == network && this.routes[i][j].proto == 2) {
             this.deviceID = this.routes[i][j].device_id.$oid;
             this.deviceID = this.getLink(this.routes[i][j].next_hop, this.routes[i][j].if_index);
-            return this.routes[i][j].device_id.$oid;
+            return this.deviceID;
           }
       	}
       }
@@ -169,12 +172,24 @@ export default {
       	if (this.deviceID == this.links[i].src_node_id.$oid && next_hop == this.links[i].dst_ip) {
       	  this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
       	  return this.links[i].dst_node_id.$oid;
-      	} else if (this.deviceID == this.links[i].dst_node_id.$oid && next_hop == this.links[i].src_ip) {
+      	} 
+        else if (this.deviceID == this.links[i].dst_node_id.$oid && next_hop == this.links[i].src_ip) {
       	  this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
-      	  return this.links[i].dst_node_id.$oid;
-      	} else if ((this.links[i].src_if_index == if_index && this.deviceID == this.links[i].src_node_id.$oid )||(this.links[i].dst_if_index == if_index && this.deviceID == this.links[i].dst_node_id.$oid) && next_hop == "0.0.0.0") {
+      	  return this.links[i].src_node_id.$oid;
+      	} 
+        else if ((this.links[i].src_if_index == if_index && this.deviceID == this.links[i].src_node_id.$oid)||(this.links[i].dst_if_index == if_index && this.deviceID == this.links[i].dst_node_id.$oid) && next_hop == "0.0.0.0" && this.links[i].src_ip != this.links[i].dst_ip) {
           this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
-        }
+          for (var j=0; j < this.routes.length; j++){
+            for (var k=0; k < this.routes[j].length; k++){
+              if (this.links[i].src_node_id.$oid == this.routes[j][k].device_id.$oid && this.routes[j][k].dst == this.destination && this.routes[j][k].next_hop == "0.0.0.0") {
+                return this.links[i].src_node_id.$oid;
+              }
+              else if (this.links[i].dst_node_id.$oid == this.routes[j][k].device_id.$oid && this.routes[j][k].dst == this.destination && this.routes[j][k].next_hop == "0.0.0.0") {
+                return this.links[i].dst_node_id.$oid;
+              }
+            }
+          }
+        } 
       }
     },
     getNetworkFromIP(ip, mask) {
@@ -286,7 +301,7 @@ export default {
         });
         if (this.check.indexOf(this.source) < 0 || this.check.indexOf(this.destination) < 0) {
           for (var i=0; i < this.networks.length; i++){
-            if (!nodes_[this.networks[i]] && this.check.indexOf(this.networks[i]) < 0){
+            if (!nodes_[this.networks[i]] && this.check.indexOf(this.networks[i]) < 0 && (this.source == this.networks[i] || this.destination == this.networks[i]) && this.click == 1){
               let label = this.networks[i]+"/"+this.mask[i];
               nodes_[this.networks[i]] = {
                 id: this.networks[i],
@@ -353,3 +368,4 @@ export default {
   }
 };
 </script>
+
