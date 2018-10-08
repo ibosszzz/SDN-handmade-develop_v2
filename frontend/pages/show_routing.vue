@@ -225,10 +225,20 @@ export default {
       this.graphRawData = await this.$axios.$get("link");
       this.updateGraph();
     },
+    count(list, check) {
+      var count = 0;
+      for (var i=0; i < list.length; i++) {
+        if (list[i] == check) {
+          count = count +1;
+        }
+      }
+      return count;
+    },
     updateGraph() {
       if (this.graphRawData.links) {
         this.graphEdge = [];
         this.graphNode = [];
+        this.check = [];
         let nodes_ = {};
         let id = 1;
         // Max - Min in API
@@ -270,7 +280,7 @@ export default {
           if(link.src_ip != link.dst_ip) {
             let net = this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet);
             this.check.push(net);
-            if (this.addlink.indexOf(link.src_ip) >= 0 && this.addlink.indexOf(link.dst_ip) >= 0 && (link.src_in_use != 0 && link.dst_in_use != 0)||(net == this.source || net == this.destination) && this.click == 1) {
+            if (this.addlink.indexOf(link.src_ip) >= 0 && this.addlink.indexOf(link.dst_ip) >= 0 && ((link.src_in_use != 0 && link.dst_in_use != 0)||(net == this.source || net == this.destination)) && this.click == 1 && link.link_min_speed <= 10000000) {
               this.graphEdge.push(edge);
               this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
       	    }
@@ -306,7 +316,7 @@ export default {
         });
         if (this.check.indexOf(this.source) < 0 || this.check.indexOf(this.destination) < 0) {
           for (var i=0; i < this.networks.length; i++){
-            if (!nodes_[this.networks[i]] && this.check.indexOf(this.networks[i]) < 0 && (this.source == this.networks[i] || this.destination == this.networks[i]) && this.click == 1){
+            if ((!nodes_[this.networks[i]] && this.check.indexOf(this.networks[i]) < 0 && (this.source == this.networks[i] || this.destination == this.networks[i]) && this.click == 1)||(this.count(this.check, this.networks[i]) > 1 && this.addlink.indexOf(this.networks[i] >= 0)&& this.click == 1)){
               let label = this.networks[i]+"/"+this.mask[i];
               nodes_[this.networks[i]] = {
                 id: this.networks[i],
