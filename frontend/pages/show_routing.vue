@@ -172,7 +172,7 @@ export default {
     },
     getLink (next_hop, if_index) {
       for (var i=0; i < this.links.length; i++) {
-      	if (this.deviceID == this.links[i].src_node_id.$oid && next_hop == this.links[i].dst_ip) {
+        if (this.deviceID == this.links[i].src_node_id.$oid && next_hop == this.links[i].dst_ip) {
       	  this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
       	  return this.links[i].dst_node_id.$oid;
       	} 
@@ -314,9 +314,9 @@ export default {
             id++;
           }
         });
-        if (this.check.indexOf(this.source) < 0 || this.check.indexOf(this.destination) < 0) {
+        if (this.check.indexOf(this.source) < 0 || this.check.indexOf(this.destination) < 0 || this.source == this.destination) {
           for (var i=0; i < this.networks.length; i++){
-            if ((!nodes_[this.networks[i]] && this.check.indexOf(this.networks[i]) < 0 && (this.source == this.networks[i] || this.destination == this.networks[i]) && this.click == 1)||(this.count(this.check, this.networks[i]) > 1 && this.addlink.indexOf(this.networks[i] >= 0)&& this.click == 1)){
+            if ((!nodes_[this.networks[i]] && this.check.indexOf(this.networks[i]) < 0 && (this.source == this.networks[i] || this.destination == this.networks[i]) && this.click == 1)||(this.count(this.check, this.networks[i]) > 1 && this.click == 1) || (this.source == this.networks[i] && this.source == this.destination && this.click == 1)) {
               let label = this.networks[i]+"/"+this.mask[i];
               nodes_[this.networks[i]] = {
                 id: this.networks[i],
