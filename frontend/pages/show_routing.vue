@@ -268,13 +268,12 @@ export default {
             color: { color, highlight: color }
           };
           if(link.src_ip != link.dst_ip) {
-            this.check.push(this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet));
-            for (var i=0; i < this.addlink.length; i++) {
-            	if (this.addlink.indexOf(link.src_ip) >= 0 && this.addlink.indexOf(link.dst_ip) >= 0) {
-                this.graphEdge.push(edge);
-                this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
-        	    }
-            }
+            let net = this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet);
+            this.check.push(net);
+            if (this.addlink.indexOf(link.src_ip) >= 0 && this.addlink.indexOf(link.dst_ip) >= 0 && (link.src_in_use != 0 && link.dst_in_use != 0)||(net == this.source || net == this.destination) && this.click == 1) {
+              this.graphEdge.push(edge);
+              this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
+      	    }
           }
           if (!nodes_[link.src_node_ip]) {
             let label;
