@@ -163,8 +163,10 @@ export default {
           };
           if (link.src_ip != link.dst_ip){
             this.check.push(this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet));
-            this.graphEdge.push(edge);
-            this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
+            if (link.src_in_use != 0 && link.dst_in_use != 0) {
+              this.graphEdge.push(edge);
+              this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
+            }
           }
           if (!nodes_[link.src_node_ip]) {
             let label;
