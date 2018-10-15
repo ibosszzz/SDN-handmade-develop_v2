@@ -1,6 +1,36 @@
 <template>
   <div class="row">
     <div class="col-sm-12 col-md-12">
+      <form class="card" @submit.prevent="onSubmit" method="post">
+        <div class="card-header">
+          <h3 class="card-title">Route</h3>
+        </div>
+		<div class="card-body">
+		  <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="form-label">Source</label>
+                <select @change="onActionChange(i)" v-model="source" class="form-control">
+                  <option value="0" disabled>Select source</option>
+                  <option v-for="network in networks" :key="network" :value="network">{{network}}/{{ mask[networks.indexOf(network)] }}</option>
+                </select>
+              </div>
+            </div>
+	    <div class="col-md-4">
+              <div class="form-group">
+                <label class="form-label">Destination</label>
+                <select @change="onActionChange(i)" v-model="destination" class="form-control">
+                  <option value="0" disabled>Select destination</option>
+                  <option v-for="network in networks" :key="network" :value="network">{{ network }}/{{ mask[networks.indexOf(network)] }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <button style="margin-top:25px" type="submit" class="btn btn-primary">Ok</button>
+            </div>
+          </div>
+	    </div>
+      </form>
       <div class="card">
         <div class="card-header">
           Network graph
@@ -21,6 +51,7 @@ import ipaddrMixin from "@/mixins/ipaddr";
 export default {
   data() {
     return {
+      devices: [],
       mode: "findpath",
       graph: null,
       node_label: "hostname",
@@ -34,11 +65,17 @@ export default {
       selectEdge: ["192.168.2.0-192.168.2.1", "192.168.2.2-192.168.2.3"],
       nodeSelect: [],
       highlightNode: [],
+      routes: [],
+      source: "",
+      destination: "",
       networks: [],
       mask:[],
-      routes: [],
-      devices: [],
-      check:[]
+      links: [],
+      deviceID: "",
+      addlink: [],
+      check: [],
+      click: 0,
+      network_in_link: []
     };
   },
   components: {
@@ -49,6 +86,18 @@ export default {
     await this.fetchData();
   },
   methods: {
+    async onSubmit(n) {
+      let check = true;
+      this.click =  1;
+      this.deviceID = "";
+      this.addlink = [];
+      this.updateGraph();
+      this.deviceID = this.getDeviceIDFromNetwork(this.source);
+      while (check) {
+      	check = this.getNextHopIP();
+      }
+      this.click = 0;
+    },
     async onClick(param) {
       this.eventName = "onClick"
       this.information = param
@@ -82,19 +131,70 @@ export default {
       this.eventName = "onClick";
       this.information = JSON.stringify(info, null, 2);
     },
-    calculate_usage_percent(src_usage, dst_usage, speed) {
-      return Math.max(src_usage, dst_usage) / speed * 100;
-    },
-    async fetchGraph() {
-      this.graphRawData = await this.$axios.$get("link");
-      this.updateGraph();
-    },
     getNetwork() {
       for (var i = 0; i < this.routes.length; i++) {
-       for (var j = 0; j < this.routes[i].length; j++) {
-         if (this.networks.indexOf(this.routes[i][j].dst) < 0 && this.routes[i][j].dst != "0.0.0.0" && this.routes[i][j].mask != "255.255.255.255") {
+	     for (var j = 0; j < this.routes[i].length; j++) {
+	       if (this.networks.indexOf(this.routes[i][j].dst) < 0 && this.routes[i][j].dst != "0.0.0.0" && this.routes[i][j].mask != "255.255.255.255") {
             this.networks.push(this.routes[i][j].dst);
             this.mask.push(this.subnetToCidr(this.routes[i][j].mask));
+      	  }
+	      }
+      }
+    },
+    getDeviceIDFromNetwork(network) {
+      for (var i=0; i < this.routes.length; i++) {
+      	for (var j=0; j < this.routes[i].length; j++) {
+          if (this.routes[i][j].dst == network && this.routes[i][j].proto == 2) {
+            this.deviceID = this.routes[i][j].device_id.$oid;
+            if (this.check.indexOf(network) >= 0) {
+              this.deviceID = this.getLink(this.routes[i][j].next_hop, this.routes[i][j].if_index);
+            }
+            return this.deviceID;
+          }
+      	}
+      }
+    },
+    getNextHopIP () {
+      for (var i=0; i < this.routes.length; i++) {
+      	if (this.routes[i][0].device_id.$oid == this.deviceID) {
+      	  for (var j=0; j < this.routes[i].length; j++) {
+      	    if (this.routes[i][j].dst == this.destination) {
+      	      if (this.routes[i][j].next_hop == "0.0.0.0") {
+                this.deviceID = this.getLink(this.routes[i][j].next_hop, this.routes[i][j].if_index);
+      	        return false;
+      	      } else {
+          			this.deviceID = this.getLink(this.routes[i][j].next_hop, this.routes[i][j].if_index);
+          			return true;
+      	      }
+      	    }
+      	  }
+      	}
+      }
+    },
+    getLink (next_hop, if_index) {
+      for (var i=0; i < this.links.length; i++) {
+        if (this.deviceID == this.links[i].src_node_id.$oid && next_hop == this.links[i].dst_ip) {
+      	  this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
+      	  return this.links[i].dst_node_id.$oid;
+      	} 
+        else if (this.deviceID == this.links[i].dst_node_id.$oid && next_hop == this.links[i].src_ip) {
+      	  this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
+      	  return this.links[i].src_node_id.$oid;
+      	} 
+        else if ((this.links[i].src_if_index == if_index && this.deviceID == this.links[i].src_node_id.$oid)||(this.links[i].dst_if_index == if_index && this.deviceID == this.links[i].dst_node_id.$oid) && next_hop == "0.0.0.0" && this.links[i].src_ip != this.links[i].dst_ip) {
+          this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
+          for (var j=0; j < this.routes.length; j++){
+            for (var k=0; k < this.routes[j].length; k++){
+              if (this.links[i].src_node_id.$oid == this.routes[j][k].device_id.$oid && this.routes[j][k].dst == this.destination && this.routes[j][k].next_hop == "0.0.0.0") {
+                return this.links[i].src_node_id.$oid;
+              }
+              else if (this.links[i].dst_node_id.$oid == this.routes[j][k].device_id.$oid && this.routes[j][k].dst == this.destination && this.routes[j][k].next_hop == "0.0.0.0") {
+                return this.links[i].dst_node_id.$oid;
+              }
+              else {
+                return this.links[i].dst_node_id.$oid;
+              }
+            }
           }
         }
       }
@@ -119,7 +219,30 @@ export default {
       }
       return ip.join(".");
     },
+    calculate_usage_percent(src_usage, dst_usage, speed) {
+      return Math.max(src_usage, dst_usage) / speed * 100;
+    },
+    async fetchGraph() {
+      this.graphRawData = await this.$axios.$get("link");
+      this.updateGraph();
+    },
+    count(list, check) {
+      var count = 0;
+      for (var i=0; i < list.length; i++) {
+        if (list[i] == check) {
+          count = count +1;
+        }
+      }
+      return count;
+    },
+    getNetworkInLink() {
+      for (var i=0; i < this.links.length; i++) {
+        this.network_in_link.push(this.getNetworkFromIP(this.links[i].src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].src_node_id.$oid)].interfaces[this.links[i].src_if_index-1].subnet))
+      }
+    },
     updateGraph() {
+      this.network_in_link = [];
+      this.getNetworkInLink();
       if (this.graphRawData.links) {
         this.graphEdge = [];
         this.graphNode = [];
@@ -162,12 +285,16 @@ export default {
             id: edgeId,
             color: { color, highlight: color }
           };
-          if (link.src_ip != link.dst_ip){
-            this.check.push(this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet));
-            if (link.src_in_use != 0 && link.dst_in_use != 0) {
+          if (link.link_min_speed > 1544000) {
+            edge.width = 1544000 /400000;
+          }
+          if(link.src_ip != link.dst_ip) {
+            let net = this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet);
+            this.check.push(net);
+            if (this.addlink.indexOf(link.src_ip) >= 0 && this.addlink.indexOf(link.dst_ip) >= 0 && this.count(this.network_in_link, this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet)) <= 1) {
               this.graphEdge.push(edge);
               this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
-            }
+      	    }
           }
           if (!nodes_[link.src_node_ip]) {
             let label;
@@ -198,43 +325,46 @@ export default {
             id++;
           }
         });
-        for (var i=0; i < this.networks.length; i++){
-          if ((!nodes_[this.networks[i]] && this.check.indexOf(this.networks[i]) < 0)){
-            let label = this.networks[i]+"/"+this.mask[i];
-            nodes_[this.networks[i]] = {
-              id: this.networks[i],
-              value: 1,
-              label: label,
-              color: "#FFF"
-            };
-            id++;
-            for (var j=0; j < this.devices.length; j++) {
-              for (var k=0; k < this.devices[j].interfaces.length; k++) {
-                if (this.devices[j].interfaces[k].ipv4_address) {
-                  if(this.getNetworkFromIP(this.devices[j].interfaces[k].ipv4_address, this.devices[j].interfaces[k].subnet) == this.networks[i]) {
-                    let color = "rgb(144, 238, 144)";
-                    const edge = {
-                      from: this.devices[j].interfaces[k].device_ip,
-                      to: this.networks[i],
-                      id: this.devices[j].interfaces[k].device_ip+this.networks[i],
-                      color: { color, highlight: color },
-                      width: 1544000 / 400000
-                    }
-                    if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
-                      this.graphEdge.push(edge);
-                      this.graph.addEdge(this.devices[j].interfaces[k].device_ip, this.networks[i]);
+        if (this.check.indexOf(this.source) < 0 || this.check.indexOf(this.destination) < 0 || this.source == this.destination) {
+          for (var i=0; i < this.networks.length; i++){
+            if ((!nodes_[this.networks[i]] && this.check.indexOf(this.networks[i]) < 0 && (this.source == this.networks[i] || this.destination == this.networks[i]) && this.click == 1)||(this.count(this.network_in_link, this.networks[i]) > 1 && this.click == 1) || (this.source == this.networks[i] && this.source == this.destination && this.click == 1)) {
+              let label = this.networks[i]+"/"+this.mask[i];
+              nodes_[this.networks[i]] = {
+                id: this.networks[i],
+                value: 1,
+                label: label,
+                color: "#FFF"
+              };
+              id++;
+              for (var j=0; j < this.devices.length; j++) {
+                for (var k=0; k < this.devices[j].interfaces.length; k++) {
+                  if (this.devices[j].interfaces[k].ipv4_address) {
+                    if(this.getNetworkFromIP(this.devices[j].interfaces[k].ipv4_address, this.devices[j].interfaces[k].subnet) == this.networks[i]) {
+                      let color = "rgb(144, 238, 144)";
+                      const edge = {
+                        from: this.devices[j].interfaces[k].device_ip,
+                        to: this.networks[i],
+                        id: this.devices[j].interfaces[k].device_ip+this.networks[i],
+                        color: { color, highlight: color },
+                        width: 1544000 / 400000
+                      }
+                      if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
+                        this.graphEdge.push(edge);
+                        this.graph.addEdge(this.devices[j].interfaces[k].device_ip, this.networks[i]);
+                      }
                     }
                   }
                 }
               }
             }
-          }
-        };
+          };
+        }
         this.nodes_ = nodes_;
         this.graphNode = Object.values(nodes_);
       }
     }
   },
+  
   async mounted() {
     // console.log(jsnx)
     this.graph = new jsnx.Graph();
@@ -264,3 +394,4 @@ export default {
   }
 };
 </script>
+
