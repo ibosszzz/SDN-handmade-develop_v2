@@ -169,20 +169,18 @@ export default {
                 return true;
               }
             }
+            else if (this.routes[i][j].mask == "255.255.255.255" && this.source != this.destination) {
+              this.deviceID = this.getLink(this.routes[i][j].next_hop, this.routes[i][j].if_index);
+              return false;
+            }
           }
         }
       }
     },
     getLink (next_hop, if_index) {
-      //alert(this.addlink);
-      //alert(this.network_in_link);
-      //alert(next_hop);
-      //alert(if_index);
-      //alert(this.deviceID);
       for (var i=0; i < this.links.length; i++) {
         var addmask = this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].src_node_id.$oid)].interfaces[this.links[i].src_if_index-1].subnet;
         if (this.links[i].dst_ip == next_hop || this.links[i].src_ip == next_hop) {
-          //alert("Im in Routes and get ipv4add");
           if (this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].src_node_id.$oid)].interfaces[this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].src_node_id.$oid)].interfaces.map(function(e) { return e.index; }).indexOf(if_index)].ipv4_address == next_hop) {
             this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip, this.links[i].src_ip, this.links[i].dst_ip);
             this.addlinkmask.push(addmask, addmask, addmask, addmask);
@@ -195,19 +193,16 @@ export default {
           }
         }
         else if (this.deviceID == this.links[i].src_node_id.$oid && next_hop == this.links[i].dst_ip) {
-          //alert("in if (deviceId = src node, next hop = dst ip)");
           this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
           this.addlinkmask.push(addmask, addmask);
           return this.links[i].dst_node_id.$oid;
         } 
         else if (this.deviceID == this.links[i].dst_node_id.$oid && next_hop == this.links[i].src_ip) {
-          //alert("in else if1 (deviceId = dst node, next hop = src ip)");
           this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
           this.addlinkmask.push(addmask, addmask);
           return this.links[i].src_node_id.$oid;
         }
         else if (((this.links[i].src_if_index == if_index && this.deviceID == this.links[i].src_node_id.$oid)||(this.links[i].dst_if_index == if_index && this.deviceID == this.links[i].dst_node_id.$oid)) && next_hop == "0.0.0.0") {
-          //alert("in else if2 (next_hop = 0.0.0.0)");
           this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
           this.addlinkmask.push(addmask, addmask);
           for (var j=0; j < this.routes.length; j++){
