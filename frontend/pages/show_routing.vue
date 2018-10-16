@@ -169,7 +169,9 @@ export default {
                 return true;
               }
             }
-            else if (this.routes[i][j].mask == "255.255.255.255" && this.source != this.destination) {
+          }
+          for (var j=0; j < this.routes[i].length; j++) {
+            if (this.routes[i][j].mask == "255.255.255.255" && this.source != this.destination) {
               this.deviceID = this.getLink(this.routes[i][j].next_hop, this.routes[i][j].if_index);
               return false;
             }
