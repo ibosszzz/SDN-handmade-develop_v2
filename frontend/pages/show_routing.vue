@@ -77,7 +77,8 @@ export default {
       check: [],
       click: 0,
       network_in_link: [],
-      network_in_addlink: []
+      network_in_addlink: [],
+      check_use_link: {}
     };
   },
   components: {
@@ -93,6 +94,7 @@ export default {
       this.click =  1;
       this.deviceID = "";
       this.addlink = [];
+      this.addlinkmask = [];
       this.updateGraph();
       this.deviceID = this.getDeviceIDFromNetwork(this.source);
       while (check) {
@@ -319,10 +321,11 @@ export default {
           if (link.link_min_speed > 1544000) {
             edge.width = 1544000 /400000;
           }
+          this.check_use_link = this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].src_node_id.$oid)].interfaces[this.links[i].src_if_index-1];
           if(link.src_ip != link.dst_ip) {
             let net = this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet);
             this.check.push(net);
-            if (this.addlink.indexOf(link.src_ip) >= 0 && this.addlink.indexOf(link.dst_ip) >= 0 && link.src_in_use != 0 && link.dst_in_use != 0 && this.count(this.network_in_link, this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet)) <= 1) {
+            if (this.addlink.indexOf(link.src_ip) >= 0 && this.addlink.indexOf(link.dst_ip) >= 0 && link.src_in_use != 0 && link.dst_in_use != 0 && this.count(this.network_in_link, this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet)) <= 1 && this.check_use_link.bw_in_usage_persec != 0 && this.check_use_link.bw_out_usage_persec != 0) {
               this.graphEdge.push(edge);
               this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
             }
