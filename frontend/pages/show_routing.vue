@@ -184,29 +184,7 @@ export default {
     getLink (next_hop, if_index) {
       for (var i=0; i < this.links.length; i++) {
         var addmask = this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].src_node_id.$oid)].interfaces[this.links[i].src_if_index-1].subnet;
-        if (this.links[i].dst_ip == next_hop || this.links[i].src_ip == next_hop) {
-          if (this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].src_node_id.$oid)].interfaces[this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].src_node_id.$oid)].interfaces.map(function(e) { return e.index; }).indexOf(if_index)].ipv4_address == next_hop) {
-            this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip, this.links[i].src_ip, this.links[i].dst_ip);
-            this.addlinkmask.push(addmask, addmask, addmask, addmask);
-            return this.links[i].src_node_id.$oid;
-          }
-          else if (this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].dst_node_id.$oid)].interfaces[this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].dst_node_id.$oid)].interfaces.map(function(e) { return e.index; }).indexOf(if_index)].ipv4_address) {
-            this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip, this.links[i].src_ip, this.links[i].dst_ip);
-            this.addlinkmask.push(addmask, addmask, addmask, addmask);
-            return this.links[i].dst_node_id.$oid;
-          }
-        }
-        else if (this.deviceID == this.links[i].src_node_id.$oid && next_hop == this.links[i].dst_ip) {
-          this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
-          this.addlinkmask.push(addmask, addmask);
-          return this.links[i].dst_node_id.$oid;
-        } 
-        else if (this.deviceID == this.links[i].dst_node_id.$oid && next_hop == this.links[i].src_ip) {
-          this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
-          this.addlinkmask.push(addmask, addmask);
-          return this.links[i].src_node_id.$oid;
-        }
-        else if (((this.links[i].src_if_index == if_index && this.deviceID == this.links[i].src_node_id.$oid)||(this.links[i].dst_if_index == if_index && this.deviceID == this.links[i].dst_node_id.$oid)) && next_hop == "0.0.0.0") {
+        if (((this.links[i].src_if_index == if_index && this.deviceID == this.links[i].src_node_id.$oid)||(this.links[i].dst_if_index == if_index && this.deviceID == this.links[i].dst_node_id.$oid)) && next_hop == "0.0.0.0") {
           this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
           this.addlinkmask.push(addmask, addmask);
           for (var j=0; j < this.routes.length; j++){
@@ -221,6 +199,28 @@ export default {
                 return this.links[i].dst_node_id.$oid;
               }
             }
+          }
+        }
+        else if (this.links[i].dst_ip == next_hop || this.links[i].src_ip == next_hop) {
+          if (this.deviceID == this.links[i].src_node_id.$oid && next_hop == this.links[i].dst_ip) {
+            this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
+            this.addlinkmask.push(addmask, addmask);
+            return this.links[i].dst_node_id.$oid;
+          } 
+          else if (this.deviceID == this.links[i].dst_node_id.$oid && next_hop == this.links[i].src_ip) {
+            this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
+            this.addlinkmask.push(addmask, addmask);
+            return this.links[i].src_node_id.$oid;
+          }
+          else if (this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].src_node_id.$oid)].interfaces[this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].src_node_id.$oid)].interfaces.map(function(e) { return e.index; }).indexOf(if_index)].ipv4_address == next_hop) {
+            this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip, this.links[i].src_ip, this.links[i].dst_ip);
+            this.addlinkmask.push(addmask, addmask, addmask, addmask);
+            return this.links[i].src_node_id.$oid;
+          }
+          else if (this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].dst_node_id.$oid)].interfaces[this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].dst_node_id.$oid)].interfaces.map(function(e) { return e.index; }).indexOf(if_index)].ipv4_address) {
+            this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip, this.links[i].src_ip, this.links[i].dst_ip);
+            this.addlinkmask.push(addmask, addmask, addmask, addmask);
+            return this.links[i].dst_node_id.$oid;
           }
         }
       }
@@ -249,6 +249,25 @@ export default {
       return Math.max(src_usage, dst_usage) / speed * 100;
     },
     async fetchGraph() {
+      try {
+        let res = await this.$axios.$get("device");
+        this.devices = res.devices;
+        res = await this.$axios.$get("link");
+        this.links = res.links;
+        let res2;
+        let device;
+        for (var i = 0; i < this.devices.length; i++) {
+          device = this.devices[i];
+          res2 = await this.$axios.$get(`routes/${device._id.$oid}`);
+          if (res2) {
+            this.routes.push(res2.routes);
+          }
+        }
+        this.getNetwork();
+      } catch (e) {}
+      this.form = {
+        ...this.propForm
+      };
       this.graphRawData = await this.$axios.$get("link");
       this.updateGraph();
     },
