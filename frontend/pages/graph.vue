@@ -41,7 +41,8 @@ export default {
       check:[],
       network_in_link: [],
       links: [],
-      check_use_link: {}
+      check_use_link: {},
+      checkGraphEdge: []
     };
   },
   components: {
@@ -89,6 +90,25 @@ export default {
       return Math.max(src_usage, dst_usage) / speed * 100;
     },
     async fetchGraph() {
+      try {
+        let res = await this.$axios.$get("device");
+        this.devices = res.devices;
+        res = await this.$axios.$get("link");
+        this.links = res.links;
+        let res2;
+        let device;
+        for (var i = 0; i < this.devices.length; i++) {
+          device = this.devices[i];
+          res2 = await this.$axios.$get(`routes/${device._id.$oid}`);
+          if (res2) {
+            this.routes.push(res2.routes);
+          }
+        }
+        this.getNetwork();
+      } catch (e) {}
+      this.form = {
+        ...this.propForm
+      };
       this.graphRawData = await this.$axios.$get("link");
       this.updateGraph();
     },
@@ -187,9 +207,18 @@ export default {
           this.check_use_link = this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].src_node_id.$oid)].interfaces[this.links[i].src_if_index-1];
           if (link.src_ip != link.dst_ip){
             this.check.push(this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet));
+            //alert(link.src_ip +", "+ link.dst_ip);
             if (this.count(this.network_in_link, this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet)) <= 1 && this.check_use_link.bw_in_usage_persec != 0 && this.check_use_link.bw_out_usage_persec != 0) {
+              //alert(this.graphEdge.length);
+              //alert(this.check_use_link.bw_in_usage_persec +", "+ this.check_use_link.bw_out_usage_persec);
               this.graphEdge.push(edge);
               this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
+            }
+            else if (this.check_use_link.bw_in_usage_persec == 0 || this.check_use_link.bw_out_usage_persec == 0) {
+              //alert(this.graph.edges());
+              this.graph.removeEdge(link.src_node_ip, link.dst_node_ip);
+              //location.reload();
+              //alert(this.graph.hasEdge(link.src_node_ip, link.dst_node_ip));
             }
           }
           if (!nodes_[link.src_node_ip]) {
@@ -255,6 +284,12 @@ export default {
         };
         this.nodes_ = nodes_;
         this.graphNode = Object.values(nodes_);
+        if (this.checkGraphEdge.length == 0) {
+          this.checkGraphEdge = this.graphEdge;
+        }
+        if (this.checkGraphEdge.length != this.graphEdge.length) {
+            location.reload();
+          }
       }
     }
   },
