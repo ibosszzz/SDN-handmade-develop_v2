@@ -41,8 +41,8 @@ export default {
       check:[],
       network_in_link: [],
       links: [],
-      check_use_link: {},
-      checkGraphEdge: []
+      checkGraphEdge: [],
+      subnet: ""
     };
   },
   components: {
@@ -123,6 +123,7 @@ export default {
       }
     },
     getNetworkFromIP(ip, mask) {
+      //alert(ip+", "+mask);
       var check = "";
       ip = ip.split(".");
       mask = mask.split(".");
@@ -153,7 +154,40 @@ export default {
     },
     getNetworkInLink() {
       for (var i=0; i < this.links.length; i++) {
-        this.network_in_link.push(this.getNetworkFromIP(this.links[i].src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].src_node_id.$oid)].interfaces[this.links[i].src_if_index-1].subnet))
+        for (var a=0; a<this.devices.length; a++) {
+          if (this.devices[a]._id.$oid == this.links[i].src_node_id.$oid) {
+            for (var b=0; b<this.devices[a].interfaces.length; b++) {
+              if (this.links[i].src_ip == this.devices[a].interfaces[b].ipv4_address){
+                this.network_in_link.push(this.getNetworkFromIP(this.links[i].src_ip, this.devices[a].interfaces[b].subnet));
+              }
+            }
+          }
+          else if (this.devices[a]._id.$oid == this.links[i].dst_node_id.$oid) {
+            for (var b=0; b<this.devices[a].interfaces.length; b++) {
+              if (this.links[i].src_ip == this.devices[a].interfaces[b].ipv4_address){
+                this.network_in_link.push(this.getNetworkFromIP(this.links[i].src_ip, this.devices[a].interfaces[b].subnet));
+              }
+            }
+          }
+        }
+      }
+    },
+    findInterfaces(src_node_id, dst_node_id, ip) {
+      for (var a=0; a<this.devices.length; a++) {
+        if (this.devices[a]._id.$oid == src_node_id.$oid) {
+          for (var b=0; b<this.devices[a].interfaces.length; b++) {
+            if (ip == this.devices[a].interfaces[b].ipv4_address){
+              return this.devices[a].interfaces[b];
+            }
+          }
+        }
+        else if (this.devices[a]._id.$oid == dst_node_id.$oid) {
+          for (var b=0; b<this.devices[a].interfaces.length; b++) {
+            if (ip == this.devices[a].interfaces[b].ipv4_address){
+              return this.devices[a].interfaces[b];
+            }
+          }
+        }
       }
     },
     updateGraph() {
@@ -191,34 +225,25 @@ export default {
               color = "rgb(0, 0, 153)";
             }
           });
-
+          var ifaces = this.findInterfaces(link.src_node_id, link.dst_node_id, link.src_ip);
           const edge = {
             from: link.src_node_ip,
             to: link.dst_node_ip,
             width: link.link_min_speed / 400000,
             // value: link.src_in_use + link.dst_in_use,
-            label: this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet)+"/"+ this.subnetToCidr(this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet) +"("+ `${speed.toFixed(2)}%` + ")",
+            label: this.getNetworkFromIP(link.src_ip, ifaces.subnet)+"/"+ this.subnetToCidr(ifaces.subnet) +"("+ `${speed.toFixed(2)}%` + ")",
             id: edgeId,
             color: { color, highlight: color }
           };
           if (link.link_min_speed > 1544000) {
             edge.width = 1544000 /400000;
           }
-          this.check_use_link = this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(this.links[i].src_node_id.$oid)].interfaces[this.links[i].src_if_index-1];
           if (link.src_ip != link.dst_ip){
-            this.check.push(this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet));
+            this.check.push(this.getNetworkFromIP(link.src_ip, ifaces.subnet));
             //alert(link.src_ip +", "+ link.dst_ip);
-            if (this.count(this.network_in_link, this.getNetworkFromIP(link.src_ip, this.devices[this.devices.map(function(e) { return e._id.$oid; }).indexOf(link.src_node_id.$oid)].interfaces[link.src_if_index-1].subnet)) <= 1 && this.check_use_link.bw_in_usage_persec != 0 && this.check_use_link.bw_out_usage_persec != 0) {
-              //alert(this.graphEdge.length);
-              //alert(this.check_use_link.bw_in_usage_persec +", "+ this.check_use_link.bw_out_usage_persec);
+            if (this.count(this.network_in_link, this.getNetworkFromIP(link.src_ip, ifaces.subnet)) <= 1 && ifaces.admin_status == 1 && ifaces.operational_status == 1) {
               this.graphEdge.push(edge);
               this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
-            }
-            else if (this.check_use_link.bw_in_usage_persec == 0 || this.check_use_link.bw_out_usage_persec == 0) {
-              //alert(this.graph.edges());
-              this.graph.removeEdge(link.src_node_ip, link.dst_node_ip);
-              //location.reload();
-              //alert(this.graph.hasEdge(link.src_node_ip, link.dst_node_ip));
             }
           }
           if (!nodes_[link.src_node_ip]) {
@@ -287,9 +312,16 @@ export default {
         if (this.checkGraphEdge.length == 0) {
           this.checkGraphEdge = this.graphEdge;
         }
-        if (this.checkGraphEdge.length != this.graphEdge.length) {
-            location.reload();
+        else if (this.checkGraphEdge.length != this.graphEdge.length) {
+          location.reload();
+        }
+        else {
+          for (var i=0;i<this.graphEdge.length;i++) {
+            if (this.graphEdge[i].from != this.checkGraphEdge[i].from || this.graphEdge[i].to != this.checkGraphEdge[i].to) {
+              location .reload();
+            }
           }
+        }
       }
     }
   },
