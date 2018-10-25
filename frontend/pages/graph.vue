@@ -41,8 +41,7 @@ export default {
       check:[],
       network_in_link: [],
       links: [],
-      checkGraphEdge: [],
-      subnet: ""
+      checkGraphEdge: []
     };
   },
   components: {
@@ -155,14 +154,7 @@ export default {
     getNetworkInLink() {
       for (var i=0; i < this.links.length; i++) {
         for (var a=0; a<this.devices.length; a++) {
-          if (this.devices[a]._id.$oid == this.links[i].src_node_id.$oid) {
-            for (var b=0; b<this.devices[a].interfaces.length; b++) {
-              if (this.links[i].src_ip == this.devices[a].interfaces[b].ipv4_address){
-                this.network_in_link.push(this.getNetworkFromIP(this.links[i].src_ip, this.devices[a].interfaces[b].subnet));
-              }
-            }
-          }
-          else if (this.devices[a]._id.$oid == this.links[i].dst_node_id.$oid) {
+          if (this.devices[a]._id.$oid == this.links[i].src_node_id.$oid || this.devices[a]._id.$oid == this.links[i].dst_node_id.$oid) {
             for (var b=0; b<this.devices[a].interfaces.length; b++) {
               if (this.links[i].src_ip == this.devices[a].interfaces[b].ipv4_address){
                 this.network_in_link.push(this.getNetworkFromIP(this.links[i].src_ip, this.devices[a].interfaces[b].subnet));
@@ -174,14 +166,7 @@ export default {
     },
     findInterfaces(src_node_id, dst_node_id, ip) {
       for (var a=0; a<this.devices.length; a++) {
-        if (this.devices[a]._id.$oid == src_node_id.$oid) {
-          for (var b=0; b<this.devices[a].interfaces.length; b++) {
-            if (ip == this.devices[a].interfaces[b].ipv4_address){
-              return this.devices[a].interfaces[b];
-            }
-          }
-        }
-        else if (this.devices[a]._id.$oid == dst_node_id.$oid) {
+        if (this.devices[a]._id.$oid == src_node_id.$oid || this.devices[a]._id.$oid == dst_node_id.$oid) {
           for (var b=0; b<this.devices[a].interfaces.length; b++) {
             if (ip == this.devices[a].interfaces[b].ipv4_address){
               return this.devices[a].interfaces[b];
