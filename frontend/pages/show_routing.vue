@@ -78,6 +78,7 @@ export default {
       click: 0,
       network_in_link: [],
       network_in_addlink: [],
+      check_use_link: {}
     };
   },
   components: {
@@ -182,8 +183,16 @@ export default {
     },
     getLink (next_hop, if_index) {
       for (var i=0; i < this.links.length; i++) {
-        var addmask = this.findInterfaces(links[i].src_node_id, links[i].dst_node_id, links[i].src_ip).subnet;
-        if (((this.links[i].src_if_index == if_index && this.deviceID == this.links[i].src_node_id.$oid)||(this.links[i].dst_if_index == if_index && this.deviceID == this.links[i].dst_node_id.$oid)) && next_hop == "0.0.0.0") {
+        var ifaces = this.findInterfaces(this.links[i].src_node_id, this.links[i].dst_node_id, this.links[i].src_ip);
+        var addmask = ifaces.subnet;
+        //between first hop and last hop
+        if (this.links[i].dst_ip == next_hop || this.links[i].src_ip == next_hop) {
+          this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
+          this.addlinkmask.push(addmask, addmask);
+          return this.findNodeID(this.links[i].src_node_id, this.links[i].dst_node_id, next_hop);
+        }
+        //first hop and last hop
+        else if (((this.links[i].src_if_index == if_index && this.deviceID == this.links[i].src_node_id.$oid)||(this.links[i].dst_if_index == if_index && this.deviceID == this.links[i].dst_node_id.$oid)) && next_hop == "0.0.0.0") {
           this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
           this.addlinkmask.push(addmask, addmask);
           for (var j=0; j < this.routes.length; j++){
@@ -194,32 +203,18 @@ export default {
               else if (this.links[i].dst_node_id.$oid == this.routes[j][k].device_id.$oid && this.routes[j][k].dst == this.destination && this.routes[j][k].next_hop == "0.0.0.0") {
                 return this.links[i].dst_node_id.$oid;
               }
-              else {
-                return this.links[i].dst_node_id.$oid;
-              }
             }
           }
         }
-        else if (this.links[i].dst_ip == next_hop || this.links[i].src_ip == next_hop) {
-          if (this.deviceID == this.links[i].src_node_id.$oid && next_hop == this.links[i].dst_ip) {
-            this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
-            this.addlinkmask.push(addmask, addmask);
+        //first hop and last hop bug db.link_utilization
+        else if ((this.links[i].src_if_ip == this.links[i].dst_node_ip || this.links[i].dst_if_ip == this.links[i].src_node_ip)&&(this.deviceID == this.links[i].src_node_id.$oid || this.deviceID == this.links[i].dst_node_id.$oid)&&(this.links[i].src_if_index == if_index || this.links[i].dst_if_index == if_index)) {
+          this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
+          this.addlinkmask.push(addmask, addmask);
+          if (this.links[i].src_node_id.$oid == this.deviceID) {
             return this.links[i].dst_node_id.$oid;
-          } 
-          else if (this.deviceID == this.links[i].dst_node_id.$oid && next_hop == this.links[i].src_ip) {
-            this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
-            this.addlinkmask.push(addmask, addmask);
-            return this.links[i].src_node_id.$oid;
           }
-          else if (this.findInterfaces2(links[i].src_node_id, links[i].src_ip).ipv4_address == next_hop) {
-            this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip, this.links[i].src_ip, this.links[i].dst_ip);
-            this.addlinkmask.push(addmask, addmask, addmask, addmask);
+          else if (this.links[i].dst_node_id.$oid == this.deviceID) {
             return this.links[i].src_node_id.$oid;
-          }
-          else if (this.findInterfaces2(links[i].dst_node_id, links[i].dst_ip).ipv4_address == next_hop) {
-            this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip, this.links[i].src_ip, this.links[i].dst_ip);
-            this.addlinkmask.push(addmask, addmask, addmask, addmask);
-            return this.links[i].dst_node_id.$oid;
           }
         }
       }
@@ -282,14 +277,7 @@ export default {
     getNetworkInLink() {
       for (var i=0; i < this.links.length; i++) {
         for (var a=0; a<this.devices.length; a++) {
-          if (this.devices[a]._id.$oid == this.links[i].src_node_id.$oid) {
-            for (var b=0; b<this.devices[a].interfaces.length; b++) {
-              if (this.links[i].src_ip == this.devices[a].interfaces[b].ipv4_address){
-                this.network_in_link.push(this.getNetworkFromIP(this.links[i].src_ip, this.devices[a].interfaces[b].subnet));
-              }
-            }
-          }
-          else if (this.devices[a]._id.$oid == this.links[i].dst_node_id.$oid) {
+          if (this.devices[a]._id.$oid == this.links[i].src_node_id.$oid || this.devices[a]._id.$oid == this.links[i].dst_node_id.$oid) {
             for (var b=0; b<this.devices[a].interfaces.length; b++) {
               if (this.links[i].src_ip == this.devices[a].interfaces[b].ipv4_address){
                 this.network_in_link.push(this.getNetworkFromIP(this.links[i].src_ip, this.devices[a].interfaces[b].subnet));
@@ -301,14 +289,7 @@ export default {
     },
     findInterfaces(src_node_id, dst_node_id, ip) {
       for (var a=0; a<this.devices.length; a++) {
-        if (this.devices[a]._id.$oid == src_node_id.$oid) {
-          for (var b=0; b<this.devices[a].interfaces.length; b++) {
-            if (ip == this.devices[a].interfaces[b].ipv4_address){
-              return this.devices[a].interfaces[b];
-            }
-          }
-        }
-        else if (this.devices[a]._id.$oid == dst_node_id.$oid) {
+        if (this.devices[a]._id.$oid == src_node_id.$oid || this.devices[a]._id.$oid == dst_node_id.$oid) {
           for (var b=0; b<this.devices[a].interfaces.length; b++) {
             if (ip == this.devices[a].interfaces[b].ipv4_address){
               return this.devices[a].interfaces[b];
@@ -317,12 +298,12 @@ export default {
         }
       }
     },
-    findInterfaces2(src_node_id, ip) {
+    findNodeID(src_node_id, dst_node_id, ip) {
       for (var a=0; a<this.devices.length; a++) {
-        if (this.devices[a]._id.$oid == src_node_id.$oid) {
+        if (this.devices[a]._id.$oid == src_node_id.$oid || this.devices[a]._id.$oid == dst_node_id.$oid) {
           for (var b=0; b<this.devices[a].interfaces.length; b++) {
             if (ip == this.devices[a].interfaces[b].ipv4_address){
-              return this.devices[a].interfaces[b];
+              return this.devices[a]._id.$oid;
             }
           }
         }
@@ -384,8 +365,7 @@ export default {
             edge.width = 1544000 /400000;
           }
           if(link.src_ip != link.dst_ip) {
-            let net = this.getNetworkFromIP(link.src_ip, ifaces.subnet);
-            this.check.push(net);
+            this.check.push(this.getNetworkFromIP(link.src_ip, ifaces.subnet));
             if (this.addlink.indexOf(link.src_ip) >= 0 && this.addlink.indexOf(link.dst_ip) >= 0 && this.count(this.network_in_link, this.getNetworkFromIP(link.src_ip, ifaces.subnet)) <= 1 && ifaces.admin_status == 1 && ifaces.operational_status == 1) {
               this.graphEdge.push(edge);
               this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
@@ -454,6 +434,8 @@ export default {
         }
         this.nodes_ = nodes_;
         this.graphNode = Object.values(nodes_);
+        //alert(this.network_in_link);
+        //alert(this.network_in_addlink);
       }
     }
   },
