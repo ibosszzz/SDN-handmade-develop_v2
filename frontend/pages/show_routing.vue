@@ -99,6 +99,9 @@ export default {
       this.deviceID = this.getDeviceIDFromNetwork(this.source);
       while (check) {
         check = this.getNextHopIP();
+        if(this.deviceID == this.getDeviceIDFromNetwork(this.destination)) {
+          break;
+        }
       }
       this.click = 0;
     },
