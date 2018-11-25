@@ -83,3 +83,10 @@ class LinkUtilizationRepository(Repository):
 
     def get_all(self):
         return self.link.find()
+
+    def get_by_id(self, id):
+        return self.link.find({'_id': ObjectId(id)})
+
+    def get_by_name(self, name):
+        self.model.create_index([('src_node_hostname', 'text'), ('dst_node_hostname', 'text')])
+        return self.model.find({'$text':{'$search': name}})
