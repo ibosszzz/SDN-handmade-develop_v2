@@ -15,17 +15,19 @@ class DeviceView(HTTPMethodView):
         if device_id is None:
             devices = device_repo.get_all()
             return json({"devices": devices, "success": True}, dumps=dumps)
+        elif len(device_id) == 24:
+            devices = request.app.db['device'].find_by_id(device_id)
+            return json({"devices": devices, "success": True}, dumps=dumps)
 
         try:
             ip_address = IPv4Address(device_id)
             ip_address = str(ip_address)
-            device = device_repo.find_by_if_ip(ip_address,
+            devices = device_repo.get_by_ip(ip_address,
                                                project=device_repo.project_simple()
                                                )
         except AddressValueError:
-            device = request.app.db['device'].get_by_id(device_id)
-
-        return json({"device": device, "success": True}, dumps=dumps)
+            devices = device_repo.get_device_by_name(device_id)
+        return json({"devices": devices, "success": True}, dumps=dumps)
 
     def post(self, request):
         device_repo = request.app.db['device']
