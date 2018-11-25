@@ -2,10 +2,9 @@ import netmiko
 from pymongo import MongoClient
 
 client = MongoClient('localhost', 27017)
-db = client['test_setup']
-collection = db['device']
 
-devices = client.test_setup.device.find()
+devices = client.iperf.device.find() #client.(database).(collection).find()
+print("start send command")
 for device in devices:
     cisco = {
         'device_type' : device['type'],
@@ -32,3 +31,4 @@ for device in devices:
     print(save)
     show_run = net_connect.send_command("show run")
     print(show_run)
+print("success of send command")
