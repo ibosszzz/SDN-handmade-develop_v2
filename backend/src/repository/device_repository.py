@@ -29,6 +29,12 @@ class DeviceRepository(Repository):
             'interfaces': 1
         }
 
+    def get_device_by_name(self, device_name):
+        self.model.create_index([('name', 'text')])
+        #device_name = "\"\\\""+device_name+"\\\"\""
+        print(device_name)
+        return self.model.find({'$text':{'$search': device_name}})
+
     def get_device_by_mgmt_ip(self, management_ip):
         """ Get device object """
         return self.model.find_one({'management_ip': management_ip})
@@ -38,6 +44,9 @@ class DeviceRepository(Repository):
 
     def get_by_id(self, _id):
         return self.model.find_one({'_id': ObjectId(_id)})
+
+    def find_by_id(self, _id):
+        return self.model.find({'_id': ObjectId(_id)})
 
     def get_active(self):
         """ Get devices is active """
@@ -99,7 +108,6 @@ class DeviceRepository(Repository):
             device_id = ObjectId(device_id)
         except InvalidId:
             return False
-
         return self.model.update_one({
             "_id": device_id
         }, {"$set": {
@@ -148,6 +156,17 @@ class DeviceRepository(Repository):
         ssh_info['ip'] = management_ip
         ssh_info['device_type'] = data['type']
         return ssh_info
+    
+    def get_by_ip(self, ip, project=None):
+        """
+        """
+        if project is None:
+            return self.model.find({
+                'interfaces.ipv4_address': ip
+            })
+        return self.model.find({
+            'interfaces.ipv4_address': ip
+        }, project)
 
     def find_by_if_ip(self, ip, project=None):
         """
