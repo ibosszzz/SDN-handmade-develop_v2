@@ -43,6 +43,9 @@ class CopiedRouteRepository(Repository):
         self.route = self.db.copied_route  # Todo deprecated
         self.model = self.db.copied_route
 
+    def get_all(self):
+        return self.model.find()
+
     def get_by_device_id(self, device_id):
         return self.model.find({'device_id': ObjectId(device_id)})
 
