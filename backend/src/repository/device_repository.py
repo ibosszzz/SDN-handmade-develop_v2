@@ -29,10 +29,14 @@ class DeviceRepository(Repository):
             'interfaces': 1
         }
 
+    def get_oid_by_name(self, device_name):
+        self.model.create_index([('name', 'text')])
+        #device_name = "\"\\\""+device_name+"\\\"\""
+        return self.model.find({'$text':{'$search': device_name}}, {'_id' : 1})
+
     def get_device_by_name(self, device_name):
         self.model.create_index([('name', 'text')])
         #device_name = "\"\\\""+device_name+"\\\"\""
-        print(device_name)
         return self.model.find({'$text':{'$search': device_name}})
 
     def get_device_by_mgmt_ip(self, management_ip):
