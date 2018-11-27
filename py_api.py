@@ -2,7 +2,7 @@ import requests
 
 #device
 def device(device_name):
-    url = "http://192.168.217.131:5001/api/v1/device/"+device_name
+    url = "http://192.168.217.132:5001/api/v1/device/"+device_name
     response = requests.get(url)
     data = response.json()
     for device in data['devices']:
@@ -13,7 +13,7 @@ def device(device_name):
 
 #link
 def link(device_name):
-    url = "http://192.168.217.131:5001/api/v1/link/"+device_name
+    url = "http://192.168.217.132:5001/api/v1/link/"+device_name
     response = requests.get(url)
     data = response.json()
     for link in data['links']:
@@ -23,7 +23,7 @@ def link(device_name):
         print()
 #flow
 def flow():
-    url = "http://192.168.217.131:5001/api/v1/flow"
+    url = "http://192.168.217.132:5001/api/v1/flow"
     response = requests.get(url)
     data = response.json()
     for flow in data['flows']:
@@ -33,22 +33,27 @@ def flow():
 
 #flow_routing
 def flow_routing():
-    url = "http://192.168.217.131:5001/api/v1/flow/routing"
+    url = "http://192.168.217.132:5001/api/v1/flow/routing"
     response = requests.get(url)
     data = response.json()
     print(data)
 
-#path
-def path(src_node_ip, dst_node_ip):
-    url = "http://192.168.217.131:5001/api/v1/path/"+src_node_ip+","+dst_node_ip
+def get_device_name_by_ip(ip):
+    url = "http://192.168.217.132:5001/api/v1/device/"+ip
     response = requests.get(url)
     data = response.json()
-    num = 1
+    return data['devices']['name']
+
+#path
+def path(src_node_ip, dst_node_ip):
+    url = "http://192.168.217.132:5001/api/v1/path/"+src_node_ip+","+dst_node_ip
+    response = requests.get(url)
+    data = response.json()
     for path in data['paths']:
-        print("path "+str(num)+" : ", end="")
-        for ip in path:
-            print(get_device_name_by_ip(ip), end=" ")
-        num = num + 1
+        print("rotue id "+path['route_id']+" : ", end="")
+        print('start node '+path['start_node'], end=", ")
+        print('nexthop node '+path['nexthop_node'], end=", ")
+        print('end node '+path['end_node'])
         print()
 
 #device(input("device_name or interface_ip or None"))
