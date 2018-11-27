@@ -22,9 +22,7 @@ class DeviceView(HTTPMethodView):
         try:
             ip_address = IPv4Address(device_id)
             ip_address = str(ip_address)
-            devices = device_repo.get_by_ip(ip_address,
-                                               project=device_repo.project_simple()
-                                               )
+            devices = device_repo.find_by_if_ip(ip_address)
         except AddressValueError:
             devices = device_repo.get_device_by_name(device_id)
         return json({"devices": devices, "success": True}, dumps=dumps)
