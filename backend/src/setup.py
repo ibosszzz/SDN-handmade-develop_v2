@@ -3,7 +3,7 @@ from pymongo import MongoClient
 
 client = MongoClient('localhost', 27017)
 
-devices = client.iperf.device.find() #client.(database).(collection).find()
+devices = client.test_setup.device.find() #client.(database).(collection).find()
 print("start send command")
 for device in devices:
     cisco = {
@@ -31,4 +31,14 @@ for device in devices:
     print(save)
     show_run = net_connect.send_command("show run")
     print(show_run)
+
+    show_version = net_connect.send_command("show version")
+
+    client.test_setup.device.update_one({
+            'management_ip': device['management_ip']
+        }, {
+            '$set': {
+                'version': show_version
+            }
+        })
 print("success of send command")
