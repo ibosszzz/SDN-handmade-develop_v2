@@ -24,6 +24,7 @@ api_v1.add_route(FlowView.as_view(), '/flow')
 api_v1.add_route(FlowRoutingView.as_view(), '/flow/routing')
 api_v1.add_route(FlowRoutingView.as_view(), '/flow/routing/<id>')
 
+api_v1.add_route(RoutingView.as_view(), '/routes')
 api_v1.add_route(RoutingView.as_view(), '/routes/<device_id>')
 
 api_v1.add_route(NeighborView.as_view(), '/neighbor/<device_id>')
