@@ -41,7 +41,8 @@ export default {
       check:[],
       network_in_link: [],
       links: [],
-      checkGraphEdge: []
+      checkGraphEdge: [],
+      neighbor: []
     };
   },
   components: {
@@ -101,6 +102,13 @@ export default {
           res2 = await this.$axios.$get(`routes/${device._id.$oid}`);
           if (res2) {
             this.routes.push(res2.routes);
+          }
+        }
+        for (var i = 0; i < this.devices.length; i++) {
+          device = this.devices[i];
+          res2 = await this.$axios.$get(`device/${device._id.$oid}/neighbor`);
+          if (res2) {
+            this.neighbor.push(res2.neighbor);
           }
         }
         this.getNetwork();
@@ -172,6 +180,13 @@ export default {
               return this.devices[a].interfaces[b];
             }
           }
+        }
+      }
+    },
+    getNetworkFromInterface(device_ip, interface_index) {
+      for (var i=0; i < this.devices.length; i++){
+        if (this.devices[i].device_ip == device_ip) {
+          return this.getNetworkFromIP(this.devices[i].interfaces[interface_index-1].ipv4_address, this.devices[i].interfaces[interface_index-1].subnet);
         }
       }
     },
@@ -260,6 +275,36 @@ export default {
             id++;
           }
         });
+        // show switch
+        for (var i=0; i < this.neighbor.length; i++){
+          for (var j=0; j< this.neighbor[i].length; j++){
+            if (!nodes_[this.neighbor[i][j].name] && this.neighbor[i][j].ip_addr == null){
+              let label = this.neighbor[i][j].name;
+              nodes_[this.neighbor[i][j].name] = {
+                id: this.neighbor[i][j].name,
+                value: 1,
+                label: label,
+                color: "#FFFF80"
+              }
+            };
+            id++;
+            if (this.neighbor[i][j].ip_addr == null){
+              let color = "rgb(144, 238, 144)";
+              const edge = {
+                from: this.neighbor[i][j].name,
+                to: this.neighbor[i][j].device_ip,
+                id: this.neighbor[i][j].name+this.neighbor[i][j].device_ip,
+                color: { color, highlight: color },
+                width: 1544000 / 400000
+              }
+              if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
+                this.graphEdge.push(edge);
+                this.graph.addEdge(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
+              }
+            }
+          }
+        }
+        // show network
         for (var i=0; i < this.networks.length; i++){
           if ((!nodes_[this.networks[i]] && this.check.indexOf(this.networks[i]) < 0)||(this.count(this.network_in_link, this.networks[i]) > 2)){
             let label = this.networks[i]+"/"+this.mask[i];
@@ -270,28 +315,27 @@ export default {
               color: "#FFF"
             };
             id++;
-            for (var j=0; j < this.devices.length; j++) {
-              for (var k=0; k < this.devices[j].interfaces.length; k++) {
-                if (this.devices[j].interfaces[k].ipv4_address) {
-                  if(this.getNetworkFromIP(this.devices[j].interfaces[k].ipv4_address, this.devices[j].interfaces[k].subnet) == this.networks[i]) {
-                    let color = "rgb(144, 238, 144)";
-                    const edge = {
-                      from: this.devices[j].interfaces[k].device_ip,
-                      to: this.networks[i],
-                      id: this.devices[j].interfaces[k].device_ip+this.networks[i],
-                      color: { color, highlight: color },
-                      width: 1544000 / 400000
-                    }
-                    if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
-                      this.graphEdge.push(edge);
-                      this.graph.addEdge(this.devices[j].interfaces[k].device_ip, this.networks[i]);
-                    }
-                  }
-                }
+          }
+        }
+        for (var j=0; j < this.neighbor.length; j++){
+          for (var k=0; k < this.neighbor[j].length; k++){
+            if (this.neighbor[j][k].ip_addr == null){
+              let color = "rgb(144, 238, 144)";
+              var network = this.getNetworkFromInterface(this.neighbor[j][k].device_ip, this.neighbor[j][k].local_ifindex);
+              const edge = {
+                from: network,
+                to: this.neighbor[j][k].name,
+                id: network+this.neighbor[j][k].name,
+                color: { color, highlight: color },
+                width: 1544000 / 400000
+              }
+              if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
+                this.graphEdge.push(edge);
+                this.graph.addEdge(network, this.neighbor[j][k].name);
               }
             }
           }
-        };
+        }
         this.nodes_ = nodes_;
         this.graphNode = Object.values(nodes_);
         if (this.checkGraphEdge.length == 0) {
@@ -326,6 +370,13 @@ export default {
         res2 = await this.$axios.$get(`routes/${device._id.$oid}`);
         if (res2) {
           this.routes.push(res2.routes);
+        }
+      }
+      for (var i = 0; i < this.devices.length; i++) {
+        device = this.devices[i];
+        res2 = await this.$axios.$get(`device/${device._id.$oid}/neighbor`);
+        if (res2) {
+          this.neighbor.push(res2.neighbor);
         }
       }
       this.getNetwork();
