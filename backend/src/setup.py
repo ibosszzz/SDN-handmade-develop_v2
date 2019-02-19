@@ -1,44 +1,33 @@
-import netmiko
+import paramiko
+import time
 from pymongo import MongoClient
 
 client = MongoClient('localhost', 27017)
+devices = client.sdn01.device.find() #client.(database).(collection).find()
 
-devices = client.test_setup.device.find() #client.(database).(collection).find()
-print("start send command")
 for device in devices:
-    cisco = {
-        'device_type' : device['type'],
-        'ip' : device['management_ip'],
-        'username' : device['ssh_info']['username'],
-        'password' : device['ssh_info']['password']
-    }
-    net_connect = netmiko.ConnectHandler(**cisco)
-    #prompt = net_connect.find_prompt()
-    #print(prompt)
-    interface = 'f0/0' #interface connect to management device
-    ip = '10.1.1.10' #ip management device
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(device['management_ip'], port=22, username=device['ssh_info']['username'], password=device['ssh_info']['password'])
+    remote_connect = ssh.invoke_shell()
+    output = remote_connect.recv(1000)
+    if output.decode("utf-8")[-1] == "#":
+        print("Privileged mode")
+    elif output.decode("utf-8")[-1] == ">":
+        print("User mode")
+        remote_connect.send("enable\n")
+        time.sleep(0.1)
+        remote_connect.send(input()+"\n")
+    else:
+        pass
+    interface = 'f0/1' #interface connect to management ip
+    ip = '192.168.1.100' #ip management device
     port = '23456'
-    source_interface = 'f0/0'
-
-    snmp_commands = ['snmp-server enable traps', 'snmp-server community public RO', 'snmp-server community private RW']
-    netflow_commands = ['interface '+interface, 'ip route-cache flow', 'exit', 'ip flow-export destination '+ip+' '+port, 'ip flow-export source '+source_interface, 'ip flow-export version 9', 'ip flow-cache timeout active 1', 'ip flow-cache  timeout inactive 15', 'ip flow-export template refresh-rate 1']
-    snmp = net_connect.send_config_set(snmp_commands)
-    print(snmp)
-    netflow = net_connect.send_config_set(netflow_commands)
-    print(netflow)
-
-    save = net_connect.send_command("wr")
-    print(save)
-    show_run = net_connect.send_command("show run")
-    print(show_run)
-
-    show_version = net_connect.send_command("show version")
-
-    client.test_setup.device.update_one({
-            'management_ip': device['management_ip']
-        }, {
-            '$set': {
-                'version': show_version
-            }
-        })
-print("success of send command")
+    source_interface = 'f0/1'
+    netflow_commands = ['interface '+interface+'\n', 'ip route-cache flow\n', 'exit\n', 'ip flow-export destination '+ip+' '+port+'\n', 'ip flow-export source '+source_interface+'\n', 'ip flow-export version 9\n', 'ip flow-cache timeout active 1\n', 'ip flow-cache  timeout inactive 15\n', 'ip flow-export template refresh-rate 1\n']
+    snmp_commands = ['snmp-server enable traps\n', 'snmp-server community public RO\n', 'snmp-server community private RW\n']
+    commands = ['conf t\n']+netflow_commands+snmp_commands
+    for command in commands:
+        remote_connect.send(command)
+        time.sleep(0.1)
+    ssh.close()
