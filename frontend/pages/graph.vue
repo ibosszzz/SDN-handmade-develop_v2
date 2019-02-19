@@ -122,7 +122,7 @@ export default {
     getNetwork() {
       for (var i = 0; i < this.routes.length; i++) {
        for (var j = 0; j < this.routes[i].length; j++) {
-         if (this.networks.indexOf(this.routes[i][j].dst) < 0 && this.routes[i][j].dst != "0.0.0.0" && this.routes[i][j].mask != "255.255.255.255") {
+         if (this.networks.indexOf(this.routes[i][j].dst) < 0 && this.routes[i][j].dst != "0.0.0.0" && this.routes[i][j].mask != "255.255.255.255" && this.routes[i][j].if_index != 0) {
             this.networks.push(this.routes[i][j].dst);
             this.mask.push(this.subnetToCidr(this.routes[i][j].mask));
           }
