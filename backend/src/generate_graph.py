@@ -87,7 +87,7 @@ def create_networkx_graph(devices, add_link=True):
                     src_out_use, neighbor_out_use = neighbor_out_use, src_out_use
                     # src_usage = current['bw_in_usage_octets']
 
-                logging.debug("Added edge: " + src_device['management_ip'] + " - " + neighbor_device[
+                logging.info("Added edge: " + src_device['management_ip'] + " - " + neighbor_device[
                     'management_ip'] + " nb speed: " + str(neighbor_if_speed) + " my speed: " + str(
                     current_if_speed) + " src_ip: " + src_if_ip + " src_port: " + src_port)
 
@@ -102,7 +102,8 @@ def create_networkx_graph(devices, add_link=True):
                 else:
                     links = {}
 
-                if netaddr.IPAddress(src_device['management_ip']) < netaddr.IPAddress(neighbor_device['management_ip']):
+                # if netaddr.IPAddress(src_device['management_ip']) < netaddr.IPAddress(neighbor_device['management_ip']):
+                if netaddr.IPAddress(current['ipv4_address']) < netaddr.IPAddress(neighbor['ip_addr']):
                     src_node_ip = src_device['management_ip']
                     src_node_id = src_device['_id']
                     src_node_hostname = src_device['name']  # Todo change name to hostname

@@ -11,7 +11,7 @@ from .routing import RoutingView
 api_v1 = Blueprint('link', url_prefix='/')
 
 api_v1.add_route(DeviceView.as_view(), '/device')
-api_v1.add_route(DeviceView.as_view(), '/device/ifip/<ip>')
+api_v1.add_route(DeviceView.as_view(), '/device/mgmtip/<ip>')
 api_v1.add_route(DeviceView.as_view(), '/device/<device_id>')
 api_v1.add_route(DeviceNeighborView.as_view(), '/device/<device_id>/neighbor')
 

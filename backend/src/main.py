@@ -17,6 +17,9 @@ def main():
     from cli.cli_controller import CLIController
     import settings
 
+    import sys
+    from pymongo import MongoClient
+
     lb.init(logging.INFO)
 
     # Create topology
@@ -40,6 +43,7 @@ def main():
     time.sleep(0.5)
     lb.get().post_shutdown()
 
+    sys.exit(MongoClient('localhost', 27017).drop_database('sdn01'))
 
 if __name__ == '__main__':
     # Fix when draw image in terminal without display

@@ -9,16 +9,25 @@ from repository import DeviceRepository
 
 class DeviceView(HTTPMethodView):
 
-    def get(self, request, device_id=None):
+    def get(self, request, device_id=None, ip=None):
         device_repo = request.app.db['device']
 
-        if device_id is None:
+        if device_id is None and ip is None:
             devices = device_repo.get_all()
             return json({"devices": devices, "success": True}, dumps=dumps)
+<<<<<<< HEAD
+        elif device_id is not None and len(device_id) == 24:
+            devices = request.app.db['device'].find_by_id(device_id)
+            return json({"devices": devices, "success": True}, dumps=dumps)
+        elif ip:
+            device = request.app.db['device'].get_device_by_mgmt_ip(ip)
+            return json({"device": device, "success": True}, dumps=dumps) 
+=======
         elif len(device_id) == 24:
             devices = request.app.db['device'].find_by_id(device_id)
             return json({"devices": devices, "success": True}, dumps=dumps)
 
+>>>>>>> 5d0d22bde1fe001196028b13b3b50c82f89a330e
         try:
             ip_address = IPv4Address(device_id)
             ip_address = str(ip_address)
