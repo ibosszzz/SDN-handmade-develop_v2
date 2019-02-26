@@ -42,7 +42,8 @@ export default {
       network_in_link: [],
       links: [],
       checkGraphEdge: [],
-      neighbor: []
+      neighbor: [],
+      network_in_graph : []
     };
   },
   components: {
@@ -90,6 +91,7 @@ export default {
       return Math.max(src_usage, dst_usage) / speed * 100;
     },
     async fetchGraph() {
+      this.neighbor = [];
       try {
         let res = await this.$axios.$get("device");
         this.devices = res.devices;
@@ -285,10 +287,8 @@ export default {
                 value: 1,
                 label: label,
                 color: "#FFFF80"
-              }
-            };
-            id++;
-            if (this.neighbor[i][j].ip_addr == null){
+              };
+              id++;
               let color = "rgb(144, 238, 144)";
               const edge = {
                 from: this.neighbor[i][j].name,
@@ -305,23 +305,12 @@ export default {
           }
         }
         // show network
-        for (var i=0; i < this.networks.length; i++){
-          if ((!nodes_[this.networks[i]] && this.check.indexOf(this.networks[i]) < 0)||(this.count(this.network_in_link, this.networks[i]) > 2)){
-            let label = this.networks[i]+"/"+this.mask[i];
-            nodes_[this.networks[i]] = {
-              id: this.networks[i],
-              value: 1,
-              label: label,
-              color: "#FFF"
-            };
-            id++;
-          }
-        }
         for (var j=0; j < this.neighbor.length; j++){
           for (var k=0; k < this.neighbor[j].length; k++){
             if (this.neighbor[j][k].ip_addr == null){
               let color = "rgb(144, 238, 144)";
               var network = this.getNetworkFromInterface(this.neighbor[j][k].device_ip, this.neighbor[j][k].local_ifindex);
+              this.network_in_graph.push(network);
               const edge = {
                 from: network,
                 to: this.neighbor[j][k].name,
@@ -336,13 +325,48 @@ export default {
             }
           }
         }
+        for (var i=0; i < this.networks.length; i++){
+          if ((!nodes_[this.networks[i]] && this.check.indexOf(this.networks[i]) < 0)||(this.count(this.network_in_link, this.networks[i]) > 2)){
+            let label = this.networks[i]+"/"+this.mask[i];
+            nodes_[this.networks[i]] = {
+              id: this.networks[i],
+              value: 1,
+              label: label,
+              color: "#FFF"
+            };
+            id++;
+            if (!this.network_in_graph.includes(this.networks[i])){
+              for (var j=0; j < this.devices.length; j++) {
+                for (var k=0; k < this.devices[j].interfaces.length; k++) {
+                  if (this.devices[j].interfaces[k].ipv4_address) {
+                    if(this.getNetworkFromIP(this.devices[j].interfaces[k].ipv4_address, this.devices[j].interfaces[k].subnet) == this.networks[i]) {
+                      let color = "rgb(144, 238, 144)";
+                      const edge = {
+                        from: this.devices[j].interfaces[k].device_ip,
+                        to: this.networks[i],
+                        id: this.devices[j].interfaces[k].device_ip+this.networks[i],
+                        color: { color, highlight: color },
+                        width: 1544000 / 400000
+                      }
+                      if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0 && !this.network_in_graph.includes(this.networks[i])) {
+                        this.graphEdge.push(edge);
+                        this.graph.addEdge(this.devices[j].interfaces[k].device_ip, this.networks[i]);
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
         this.nodes_ = nodes_;
         this.graphNode = Object.values(nodes_);
         if (this.checkGraphEdge.length == 0) {
           this.checkGraphEdge = this.graphEdge;
         }
         else if (this.checkGraphEdge.length != this.graphEdge.length) {
-          location.reload();
+          //alert(this.neighbor);
+          //location.reload();
         }
         else {
           for (var i=0;i<this.graphEdge.length;i++) {
