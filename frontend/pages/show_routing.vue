@@ -78,7 +78,9 @@ export default {
       click: 0,
       network_in_link: [],
       network_in_addlink: [],
-      check_use_link: {}
+      check_use_link: {},
+      neighbor: [],
+      router_in_graph : []
     };
   },
   components: {
@@ -246,6 +248,7 @@ export default {
       return Math.max(src_usage, dst_usage) / speed * 100;
     },
     async fetchGraph() {
+      this.neighbor = [];
       try {
         let res = await this.$axios.$get("device");
         this.devices = res.devices;
@@ -258,6 +261,13 @@ export default {
           res2 = await this.$axios.$get(`routes/${device._id.$oid}`);
           if (res2) {
             this.routes.push(res2.routes);
+          }
+        }
+        for (var i = 0; i < this.devices.length; i++) {
+          device = this.devices[i];
+          res2 = await this.$axios.$get(`device/${device._id.$oid}/neighbor`);
+          if (res2) {
+            this.neighbor.push(res2.neighbor);
           }
         }
         this.getNetwork();
@@ -372,6 +382,12 @@ export default {
             if (this.addlink.indexOf(link.src_ip) >= 0 && this.addlink.indexOf(link.dst_ip) >= 0 && this.count(this.network_in_link, this.getNetworkFromIP(link.src_ip, ifaces.subnet)) <= 1 && ifaces.admin_status == 1 && ifaces.operational_status == 1) {
               this.graphEdge.push(edge);
               this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
+              if (!this.router_in_graph.includes(link.src_node_ip)){
+                this.router_in_graph.push(link.src_node_ip);
+              }
+              if (!this.router_in_graph.includes(link.dst_node_ip)){
+                this.router_in_graph.push(link.dst_node_ip);
+              }
             }
           }
           if (!nodes_[link.src_node_ip]) {
@@ -403,6 +419,39 @@ export default {
             id++;
           }
         });
+        //alert(this.router_in_graph);
+        /*
+        // show switch
+        for (var i=0; i < this.neighbor.length; i++){
+          for (var j=0; j< this.neighbor[i].length; j++){
+            if (!nodes_[this.neighbor[i][j].name] && this.neighbor[i][j].ip_addr == null && this.click == 1 && this.router_in_graph.includes(this.neighbor[i][j].device_ip)){
+              let label = this.neighbor[i][j].name;
+              nodes_[this.neighbor[i][j].name] = {
+                id: this.neighbor[i][j].name,
+                value: 1,
+                label: label,
+                color: "#FFFF80"
+              }
+            };
+            id++;
+            if (this.neighbor[i][j].ip_addr == null && this.click == 1){
+              let color = "rgb(144, 238, 144)";
+              const edge = {
+                from: this.neighbor[i][j].name,
+                to: this.neighbor[i][j].device_ip,
+                id: this.neighbor[i][j].name+this.neighbor[i][j].device_ip,
+                color: { color, highlight: color },
+                width: 1544000 / 400000
+              }
+              if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
+                this.graphEdge.push(edge);
+                this.graph.addEdge(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
+              }
+            }
+          }
+        }
+        */
+        //show network
         for (var i=0; i < this.networks.length; i++){
           if (!nodes_[this.networks[i]] && (this.count(this.network_in_addlink, this.networks[i]) > 2 && this.count(this.network_in_link, this.networks[i]) >= 2) || (((this.source == this.networks[i] && this.count(this.network_in_link, this.source) >= 2) || (this.source == this.networks[i] && this.network_in_link.indexOf(this.networks[i]) < 0) || (this.destination == this.networks[i] && this.network_in_link.indexOf(this.networks[i]) < 0) || this.destination == this.networks[i] && this.count(this.network_in_link, this.destination) >= 2) && this.click == 1)) {
             let label = this.networks[i]+"/"+this.mask[i];
@@ -459,6 +508,13 @@ export default {
         res2 = await this.$axios.$get(`routes/${device._id.$oid}`);
         if (res2) {
           this.routes.push(res2.routes);
+        }
+      }
+      for (var i = 0; i < this.devices.length; i++) {
+        device = this.devices[i];
+        res2 = await this.$axios.$get(`device/${device._id.$oid}/neighbor`);
+        if (res2) {
+          this.neighbor.push(res2.neighbor);
         }
       }
       this.getNetwork();
