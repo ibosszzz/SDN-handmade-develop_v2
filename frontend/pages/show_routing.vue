@@ -80,7 +80,10 @@ export default {
       network_in_addlink: [],
       check_use_link: {},
       neighbor: [],
-      router_in_graph : []
+      router_in_graph : [],
+      link_in_graph : [],
+      check_switch : [],
+      edges : []
     };
   },
   components: {
@@ -105,7 +108,7 @@ export default {
           break;
         }
       }
-      this.click = 0;
+      //this.click = 0;
     },
     async onClick(param) {
       this.eventName = "onClick"
@@ -333,6 +336,8 @@ export default {
       this.getNetworkInLink();
       this.getNetworkInAddlink();
       if (this.graphRawData.links) {
+        this.check_switch = [];
+        this.edges = [];
         this.graphEdge = [];
         this.graphNode = [];
         this.check = [];
@@ -382,6 +387,7 @@ export default {
             if (this.addlink.indexOf(link.src_ip) >= 0 && this.addlink.indexOf(link.dst_ip) >= 0 && this.count(this.network_in_link, this.getNetworkFromIP(link.src_ip, ifaces.subnet)) <= 1 && ifaces.admin_status == 1 && ifaces.operational_status == 1) {
               this.graphEdge.push(edge);
               this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
+              this.edges.push(link.src_node_ip, link.dst_node_ip);
               if (!this.router_in_graph.includes(link.src_node_ip)){
                 this.router_in_graph.push(link.src_node_ip);
               }
@@ -420,7 +426,6 @@ export default {
           }
         });
         //alert(this.router_in_graph);
-        /*
         // show switch
         for (var i=0; i < this.neighbor.length; i++){
           for (var j=0; j< this.neighbor[i].length; j++){
@@ -446,11 +451,13 @@ export default {
               if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
                 this.graphEdge.push(edge);
                 this.graph.addEdge(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
+                this.link_in_graph.push([this.neighbor[i][j].device_ip, this.neighbor[i][j].name]);
+                this.edges.push(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
+                this.check_switch.push(this.neighbor[i][j].name);
               }
             }
           }
         }
-        */
         //show network
         for (var i=0; i < this.networks.length; i++){
           if (!nodes_[this.networks[i]] && (this.count(this.network_in_addlink, this.networks[i]) > 2 && this.count(this.network_in_link, this.networks[i]) >= 2) || (((this.source == this.networks[i] && this.count(this.network_in_link, this.source) >= 2) || (this.source == this.networks[i] && this.network_in_link.indexOf(this.networks[i]) < 0) || (this.destination == this.networks[i] && this.network_in_link.indexOf(this.networks[i]) < 0) || this.destination == this.networks[i] && this.count(this.network_in_link, this.destination) >= 2) && this.click == 1)) {
@@ -474,9 +481,17 @@ export default {
                       color: { color, highlight: color },
                       width: 1544000 / 400000
                     }
+                    for (var a=0; a<this.link_in_graph.length; a++){
+                      if (this.link_in_graph[a].includes(this.devices[j].interfaces[k].device_ip)){
+                        this.check_switch.push(this.link_in_graph[a][1]);
+                        edge.from = this.link_in_graph[a][1];
+                        this.link_in_graph.splice(a, 1);
+                      }
+                    }
                     if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
                       this.graphEdge.push(edge);
-                      this.graph.addEdge(this.devices[j].interfaces[k].device_ip, this.networks[i]);
+                      this.graph.addEdge(edge.from, this.networks[i]);
+                      this.edges.push(edge.from, this.networks[i]);
                     }
                   }
                 }
@@ -484,10 +499,15 @@ export default {
             }
           };
         }
+        if (this.click == 1){
+          for (var i=0; i<this.check_switch.length;i++){
+            if (this.count(this.check_switch, this.check_switch[i]) < 2){
+              delete nodes_[this.check_switch[i]];
+            }
+          }
+        }
         this.nodes_ = nodes_;
         this.graphNode = Object.values(nodes_);
-        //alert(this.network_in_link);
-        //alert(this.network_in_addlink);
       }
     }
   },
