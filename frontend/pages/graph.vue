@@ -366,7 +366,7 @@ export default {
         }
         else if (this.checkGraphEdge.length != this.graphEdge.length) {
           //alert(this.neighbor);
-          //location.reload();
+          location.reload();
         }
         else {
           for (var i=0;i<this.graphEdge.length;i++) {
