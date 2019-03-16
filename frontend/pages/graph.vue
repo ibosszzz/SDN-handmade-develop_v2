@@ -43,7 +43,9 @@ export default {
       links: [],
       checkGraphEdge: [],
       neighbor: [],
-      network_in_graph : []
+      network_in_graph : [],
+      edges : [],
+      net : []
     };
   },
   components: {
@@ -196,6 +198,8 @@ export default {
       this.network_in_link = [];
       this.getNetworkInLink();
       if (this.graphRawData.links) {
+        this.net = [];
+        this.edges = [];
         this.graphEdge = [];
         this.graphNode = [];
         this.check = [];
@@ -246,6 +250,7 @@ export default {
             if (this.count(this.network_in_link, this.getNetworkFromIP(link.src_ip, ifaces.subnet)) <= 1 && ifaces.admin_status == 1 && ifaces.operational_status == 1) {
               this.graphEdge.push(edge);
               this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
+              this.edges.push(link.src_node_ip, link.dst_node_ip);
             }
           }
           if (!nodes_[link.src_node_ip]) {
@@ -300,6 +305,7 @@ export default {
               if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
                 this.graphEdge.push(edge);
                 this.graph.addEdge(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
+                this.edges.push(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
               }
             }
           }
@@ -321,6 +327,7 @@ export default {
               if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
                 this.graphEdge.push(edge);
                 this.graph.addEdge(network, this.neighbor[j][k].name);
+                this.edges.push(network, this.neighbor[j][k].name);
               }
             }
           }
@@ -335,6 +342,7 @@ export default {
               color: "#FFF"
             };
             id++;
+            this.net.push(this.networks[i]);
             if (!this.network_in_graph.includes(this.networks[i])){
               for (var j=0; j < this.devices.length; j++) {
                 for (var k=0; k < this.devices[j].interfaces.length; k++) {
@@ -351,12 +359,25 @@ export default {
                       if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0 && !this.network_in_graph.includes(this.networks[i])) {
                         this.graphEdge.push(edge);
                         this.graph.addEdge(this.devices[j].interfaces[k].device_ip, this.networks[i]);
+                        this.edges.push(this.devices[j].interfaces[k].device_ip, this.networks[i]);
                       }
                     }
                   }
                 }
               }
             }
+          }
+        }
+        //delete node not use
+        for (var i=0; i<this.devices.length; i++){
+          if (!this.devices[i].is_ssh_connect){
+            delete nodes_[this.devices[i].device_ip];
+          }
+        }
+        //delete network not edge
+        for (var i=0; i<this.net.length; i++){
+          if (!this.edges.includes(this.net[i])){
+            delete nodes_[this.net[i]];
           }
         }
         this.nodes_ = nodes_;
