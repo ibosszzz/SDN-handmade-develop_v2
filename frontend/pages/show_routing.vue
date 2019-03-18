@@ -104,9 +104,6 @@ export default {
       this.deviceID = this.getDeviceIDFromNetwork(this.source);
       while (check) {
         check = this.getNextHopIP();
-        if(this.deviceID == this.getDeviceIDFromNetwork(this.destination)) {
-          break;
-        }
       }
       //this.click = 0;
     },
@@ -167,6 +164,7 @@ export default {
       }
     },
     getNextHopIP () {
+
       for (var i=0; i < this.routes.length; i++) {
         if (this.routes[i][0].device_id.$oid == this.deviceID) {
           for (var j=0; j < this.routes[i].length; j++) {
@@ -212,17 +210,6 @@ export default {
                 return this.links[i].dst_node_id.$oid;
               }
             }
-          }
-        }
-        //first hop and last hop bug db.link_utilization
-        else if ((this.links[i].src_if_ip == this.links[i].dst_node_ip || this.links[i].dst_if_ip == this.links[i].src_node_ip)&&(this.deviceID == this.links[i].src_node_id.$oid || this.deviceID == this.links[i].dst_node_id.$oid)&&(this.links[i].src_if_index == if_index || this.links[i].dst_if_index == if_index)) {
-          this.addlink.push(this.links[i].src_ip, this.links[i].dst_ip);
-          this.addlinkmask.push(addmask, addmask);
-          if (this.links[i].src_node_id.$oid == this.deviceID) {
-            return this.links[i].dst_node_id.$oid;
-          }
-          else if (this.links[i].dst_node_id.$oid == this.deviceID) {
-            return this.links[i].src_node_id.$oid;
           }
         }
       }
@@ -336,6 +323,7 @@ export default {
       this.getNetworkInLink();
       this.getNetworkInAddlink();
       if (this.graphRawData.links) {
+        this.link_in_graph = [];
         this.check_switch = [];
         this.edges = [];
         this.graphEdge = [];
@@ -429,7 +417,7 @@ export default {
         // show switch
         for (var i=0; i < this.neighbor.length; i++){
           for (var j=0; j< this.neighbor[i].length; j++){
-            if (!nodes_[this.neighbor[i][j].name] && this.neighbor[i][j].ip_addr == null && this.click == 1 && this.router_in_graph.includes(this.neighbor[i][j].device_ip)){
+            if (!nodes_[this.neighbor[i][j].name] && this.neighbor[i][j].ip_addr == null && this.click == 1){
               let label = this.neighbor[i][j].name;
               nodes_[this.neighbor[i][j].name] = {
                 id: this.neighbor[i][j].name,
@@ -482,7 +470,7 @@ export default {
                       width: 1544000 / 400000
                     }
                     for (var a=0; a<this.link_in_graph.length; a++){
-                      if (this.link_in_graph[a].includes(this.devices[j].interfaces[k].device_ip)){
+                      if (this.link_in_graph[a][0] == this.devices[j].interfaces[k].ipv4_address){
                         this.check_switch.push(this.link_in_graph[a][1]);
                         edge.from = this.link_in_graph[a][1];
                         this.link_in_graph.splice(a, 1);
@@ -500,6 +488,18 @@ export default {
           };
         }
         if (this.click == 1){
+          /*
+          alert(Object.values(nodes_).length);
+          for (var i=0; i<this.devices.length; i++){
+            //alert(this.devices[i].device_ip+" "+this.count(this.edges, this.devices[i].device_ip));
+            if (this.count(this.edges, this.devices[i].device_ip) < 2){
+              //alert(111);
+              delete nodes_[this.devices[i].device_ip];
+              //alert("low 2 "+this.devices[i].device_ip);
+            }
+          }
+          alert(Object.values(nodes_).length);
+          */
           for (var i=0; i<this.check_switch.length;i++){
             if (this.count(this.check_switch, this.check_switch[i]) < 2){
               delete nodes_[this.check_switch[i]];
