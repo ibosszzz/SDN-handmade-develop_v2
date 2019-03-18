@@ -198,6 +198,7 @@ export default {
       this.network_in_link = [];
       this.getNetworkInLink();
       if (this.graphRawData.links) {
+        this.network_in_graph = [];
         this.net = [];
         this.edges = [];
         this.graphEdge = [];
@@ -294,44 +295,42 @@ export default {
                 color: "#FFFF80"
               };
               id++;
-              let color = "rgb(144, 238, 144)";
-              const edge = {
-                from: this.neighbor[i][j].name,
-                to: this.neighbor[i][j].device_ip,
-                id: this.neighbor[i][j].name+this.neighbor[i][j].device_ip,
-                color: { color, highlight: color },
-                width: 1544000 / 400000
-              }
-              if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
-                this.graphEdge.push(edge);
-                this.graph.addEdge(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
-                this.edges.push(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
+              for (var a=0; a<this.devices.length; a++){
+                if (this.devices[a].device_ip == this.neighbor[i][j].device_ip){
+                  var ifaces = this.devices[a].interfaces[this.neighbor[i][j].local_ifindex-1];
+                  // Calculate link usage
+                  const speed = this.calculate_usage_percent(
+                    ifaces.bw_in_usage_persec,
+                    ifaces.bw_out_usage_persec,
+                    ifaces.speed
+                  );
+                  let color;
+                  if (speed < 50) {
+                    color = "rgb(144, 238, 144)";
+                  } else if (speed < 85) {
+                    color = "rgb(255, 165, 0)";
+                  } else {
+                    color = "rgb(255, 0, 0)";
+                  }
+                  const edge = {
+                    from: this.neighbor[i][j].name,
+                    to: this.neighbor[i][j].device_ip,
+                    id: this.neighbor[i][j].name+this.neighbor[i][j].device_ip,
+                    label: this.getNetworkFromIP(ifaces.ipv4_address, ifaces.subnet)+"/"+this.subnetToCidr(ifaces.subnet) +"("+ `${speed.toFixed(2)}%` + ")",
+                    color: { color, highlight: color },
+                    width: 1544000 / 400000
+                  }
+                  if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
+                    this.graphEdge.push(edge);
+                    this.graph.addEdge(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
+                    this.edges.push(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
+                  }
+                }
               }
             }
           }
         }
         // show network
-        for (var j=0; j < this.neighbor.length; j++){
-          for (var k=0; k < this.neighbor[j].length; k++){
-            if (this.neighbor[j][k].ip_addr == null){
-              let color = "rgb(144, 238, 144)";
-              var network = this.getNetworkFromInterface(this.neighbor[j][k].device_ip, this.neighbor[j][k].local_ifindex);
-              this.network_in_graph.push(network);
-              const edge = {
-                from: network,
-                to: this.neighbor[j][k].name,
-                id: network+this.neighbor[j][k].name,
-                color: { color, highlight: color },
-                width: 1544000 / 400000
-              }
-              if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
-                this.graphEdge.push(edge);
-                this.graph.addEdge(network, this.neighbor[j][k].name);
-                this.edges.push(network, this.neighbor[j][k].name);
-              }
-            }
-          }
-        }
         for (var i=0; i < this.networks.length; i++){
           if ((!nodes_[this.networks[i]] && this.check.indexOf(this.networks[i]) < 0)||(this.count(this.network_in_link, this.networks[i]) > 2)){
             let label = this.networks[i]+"/"+this.mask[i];
@@ -343,16 +342,52 @@ export default {
             };
             id++;
             this.net.push(this.networks[i]);
+            for (var j=0; j < this.neighbor.length; j++){
+              for (var k=0; k < this.neighbor[j].length; k++){
+                if (this.neighbor[j][k].ip_addr == null){
+                  let color = "rgb(144, 238, 144)";
+                  var network = this.getNetworkFromInterface(this.neighbor[j][k].device_ip, this.neighbor[j][k].local_ifindex);
+                  this.network_in_graph.push(network);
+                  const edge = {
+                    from: network,
+                    to: this.neighbor[j][k].name,
+                    id: network+this.neighbor[j][k].name,
+                    color: { color, highlight: color },
+                    width: 1544000 / 400000
+                  }
+                  if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
+                    this.graphEdge.push(edge);
+                    this.graph.addEdge(network, this.neighbor[j][k].name);
+                    this.edges.push(network, this.neighbor[j][k].name);
+                  }
+                }
+              }
+            }
             if (!this.network_in_graph.includes(this.networks[i])){
               for (var j=0; j < this.devices.length; j++) {
                 for (var k=0; k < this.devices[j].interfaces.length; k++) {
                   if (this.devices[j].interfaces[k].ipv4_address) {
                     if(this.getNetworkFromIP(this.devices[j].interfaces[k].ipv4_address, this.devices[j].interfaces[k].subnet) == this.networks[i]) {
-                      let color = "rgb(144, 238, 144)";
+                      var ifaces = this.devices[j].interfaces[k];
+                      // Calculate link usage
+                      const speed = this.calculate_usage_percent(
+                        ifaces.bw_in_usage_persec,
+                        ifaces.bw_out_usage_persec,
+                        ifaces.speed
+                      );
+                      let color;
+                      if (speed < 50) {
+                        color = "rgb(144, 238, 144)";
+                      } else if (speed < 85) {
+                        color = "rgb(255, 165, 0)";
+                      } else {
+                        color = "rgb(255, 0, 0)";
+                      }
                       const edge = {
                         from: this.devices[j].interfaces[k].device_ip,
                         to: this.networks[i],
                         id: this.devices[j].interfaces[k].device_ip+this.networks[i],
+                        label: this.networks[i]+"/"+this.subnetToCidr(ifaces.subnet) +"("+ `${speed.toFixed(2)}%` + ")",
                         color: { color, highlight: color },
                         width: 1544000 / 400000
                       }
@@ -386,7 +421,6 @@ export default {
           this.checkGraphEdge = this.graphEdge;
         }
         else if (this.checkGraphEdge.length != this.graphEdge.length) {
-          //alert(this.neighbor);
           location.reload();
         }
         else {
