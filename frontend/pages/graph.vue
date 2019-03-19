@@ -406,13 +406,19 @@ export default {
         //delete node not use
         for (var i=0; i<this.devices.length; i++){
           if (!this.devices[i].is_ssh_connect){
+            for (var j=0; j<this.neighbor.length; j++){
+              for (var k=0; k<this.neighbor[j].length; k++){
+                if (this.neighbor[j][k].ip_addr == null && this.neighbor[j][k].device_ip == this.devices[i].device_ip){
+                  delete nodes_[this.neighbor[j][k].name];
+                }
+              }
+            }
+            for (var j=0; j<this.devices[i].interfaces.length; j++){
+              if (this.devices[i].interfaces[j].ipv4_address){
+                delete nodes_[this.getNetworkFromIP(this.devices[i].interfaces[j].ipv4_address, this.devices[i].interfaces[j].subnet)];
+              }
+            }
             delete nodes_[this.devices[i].device_ip];
-          }
-        }
-        //delete network not edge
-        for (var i=0; i<this.net.length; i++){
-          if (!this.edges.includes(this.net[i])){
-            delete nodes_[this.net[i]];
           }
         }
         this.nodes_ = nodes_;
