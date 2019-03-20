@@ -26,6 +26,7 @@ for device in devices:
     for command in snmp_commands:
         remote_connect.send(command)
         time.sleep(0.5)
+    time.sleep(15)
     # set netflow
     interfaces = client.sdn01.device.find({'management_ip': device['management_ip']}, {'_id':0, 'interfaces': 1})
     for interface in interfaces:
