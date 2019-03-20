@@ -2,7 +2,7 @@ import netaddr
 
 from repository import PolicyRoute
 
-ACCEPT_PROTOCOL = ('tcp', 'udp')
+ACCEPT_PROTOCOL = ('tcp', 'udp', 'icmp')
 
 
 def generate_cmd(flow, flow_id, flow_name, action):
@@ -115,7 +115,7 @@ def _generate_policy_command(flow):
             acl_command3 += ' eq {}'.format(flow['pending']['dst_port'])
 
     # Add ACL protocols (tcp, udp, icmp)
-    acl_command4 = acl_command3.replace('10 permit udp', '20 permit tcp')
+    acl_command4 = acl_command3.replace('10 permit udp', '20 permit tcp', '30 permit icmp')
     acl_command5 = acl_command3.replace('10 permit udp', '30 permit icmp')
 
     return [acl_command0, acl_command1, acl_command2, acl_command3, acl_command4, acl_command5]
