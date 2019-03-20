@@ -29,14 +29,12 @@ for device in devices:
     # set netflow
     interfaces = client.sdn01.device.find({'management_ip': device['management_ip']}, {'_id':0, 'interfaces': 1})
     for interface in interfaces:
-        if "ipv4_address" in interface:
-            for command in ['interface '+interface+'\n','ip policy route-map SDN-handmade', 'ip route-cache flow\n', 'exit\n']:
-                remote_connect.send(command)
-                time.sleep(0.5)
-        else:
-            for command in ['interface '+interface+'\n', 'ip policy route-map SDN-handmade']:
-                remote_connect.send(command)
-                time.sleep(0.5)
+        for iface in interface['interfaces']:
+            if "ipv4_address" in iface:
+                for command in ['interface '+iface["description"]+'\n','ip policy route-map SDN-handmade\n', 'ip route-cache flow\n', 'exit\n']:
+                    remote_connect.send(command)
+                    time.sleep(0.5)
+                    #print(remote_connect.recv(10000))
     ip = '10.30.7.31' #ip management device
     port = '23456'
     for command in ['ip flow-export destination '+ip+' '+port+'\n', 'ip flow-export version 9\n', 'ip flow-cache timeout active 1\n', 'ip flow-cache timeout inactive 15\n', 'ip flow-export template refresh-rate 1\n']:
