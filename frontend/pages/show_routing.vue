@@ -164,7 +164,6 @@ export default {
       }
     },
     getNextHopIP () {
-
       for (var i=0; i < this.routes.length; i++) {
         if (this.routes[i][0].device_id.$oid == this.deviceID) {
           for (var j=0; j < this.routes[i].length; j++) {
@@ -203,10 +202,10 @@ export default {
           this.addlinkmask.push(addmask, addmask);
           for (var j=0; j < this.routes.length; j++){
             for (var k=0; k < this.routes[j].length; k++){
-              if (this.links[i].src_node_id.$oid == this.routes[j][k].device_id.$oid && this.routes[j][k].dst == this.destination && this.routes[j][k].next_hop == "0.0.0.0") {
+              if (this.links[i].src_node_id.$oid == this.routes[j][k].device_id.$oid && (this.routes[j][k].dst == this.destination || this.routes[j][k].dst == this.source)&& this.routes[j][k].next_hop == "0.0.0.0") {
                 return this.links[i].src_node_id.$oid;
               }
-              else if (this.links[i].dst_node_id.$oid == this.routes[j][k].device_id.$oid && this.routes[j][k].dst == this.destination && this.routes[j][k].next_hop == "0.0.0.0") {
+              else if (this.links[i].dst_node_id.$oid == this.routes[j][k].device_id.$oid && (this.routes[j][k].dst == this.destination  || this.routes[j][k].dst == this.source) && this.routes[j][k].next_hop == "0.0.0.0") {
                 return this.links[i].dst_node_id.$oid;
               }
             }
@@ -470,10 +469,13 @@ export default {
                       width: 1544000 / 400000
                     }
                     for (var a=0; a<this.link_in_graph.length; a++){
-                      if (this.link_in_graph[a][0] == this.devices[j].interfaces[k].ipv4_address){
+                      //alert(this.link_in_graph[a][0])
+                      //alert(this.devices[j].interfaces[k].ipv4_address)
+                      if (this.link_in_graph[a][0] == this.devices[j].device_ip){
+                        
                         this.check_switch.push(this.link_in_graph[a][1]);
                         edge.from = this.link_in_graph[a][1];
-                        this.link_in_graph.splice(a, 1);
+                        this.link_in_graph.push(edge.from, edge.to);
                       }
                     }
                     if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
@@ -488,18 +490,15 @@ export default {
           };
         }
         if (this.click == 1){
-          /*
-          alert(Object.values(nodes_).length);
+          //alert(this.network_in_link);
+          //alert(this.network_in_addlink);
           for (var i=0; i<this.devices.length; i++){
-            //alert(this.devices[i].device_ip+" "+this.count(this.edges, this.devices[i].device_ip));
             if (this.count(this.edges, this.devices[i].device_ip) < 2){
-              //alert(111);
               delete nodes_[this.devices[i].device_ip];
-              //alert("low 2 "+this.devices[i].device_ip);
             }
           }
-          alert(Object.values(nodes_).length);
-          */
+          //alert(this.link_in_graph)
+          //alert(this.check_switch)
           for (var i=0; i<this.check_switch.length;i++){
             if (this.count(this.check_switch, this.check_switch[i]) < 2){
               delete nodes_[this.check_switch[i]];
