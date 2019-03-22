@@ -435,12 +435,18 @@ export default {
                 color: { color, highlight: color },
                 width: 1544000 / 400000
               }
-              if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
-                this.graphEdge.push(edge);
-                this.graph.addEdge(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
-                this.link_in_graph.push([this.neighbor[i][j].device_ip, this.neighbor[i][j].name]);
-                this.edges.push(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
-                this.check_switch.push(this.neighbor[i][j].name);
+              for (var a=0; a<this.devices.length; a++){
+                if (this.devices[a].device_ip == this.neighbor[i][j].device_ip){
+                  var ifaces = this.devices[a].interfaces[this.neighbor[i][j].local_ifindex-1];
+                  var net = this.getNetworkFromIP(ifaces.ipv4_address, ifaces.subnet);
+                  if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
+                    this.graphEdge.push(edge);
+                    this.graph.addEdge(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
+                    this.link_in_graph.push([this.neighbor[i][j].device_ip, this.neighbor[i][j].name, net]);
+                    this.edges.push(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
+                    this.check_switch.push(this.neighbor[i][j].name);
+                  }
+                }
               }
             }
           }
@@ -471,8 +477,7 @@ export default {
                     for (var a=0; a<this.link_in_graph.length; a++){
                       //alert(this.link_in_graph[a][0])
                       //alert(this.devices[j].interfaces[k].ipv4_address)
-                      if (this.link_in_graph[a][0] == this.devices[j].device_ip){
-                        
+                      if (this.link_in_graph[a][0] == this.devices[j].device_ip && this.link_in_graph[a][2] == this.networks[i]){
                         this.check_switch.push(this.link_in_graph[a][1]);
                         edge.from = this.link_in_graph[a][1];
                         this.link_in_graph.push(edge.from, edge.to);
