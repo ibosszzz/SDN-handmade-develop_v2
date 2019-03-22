@@ -251,7 +251,6 @@ export default {
             if (this.count(this.network_in_link, this.getNetworkFromIP(link.src_ip, ifaces.subnet)) <= 1 && ifaces.admin_status == 1 && ifaces.operational_status == 1) {
               this.graphEdge.push(edge);
               this.graph.addEdge(link.src_node_ip, link.dst_node_ip);
-              this.edges.push(link.src_node_ip, link.dst_node_ip);
             }
           }
           if (!nodes_[link.src_node_ip]) {
@@ -323,7 +322,7 @@ export default {
                   if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
                     this.graphEdge.push(edge);
                     this.graph.addEdge(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
-                    this.edges.push(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
+                    this.edges.push([this.neighbor[i][j].device_ip, this.getNetworkFromIP(ifaces.ipv4_address, ifaces.subnet)]);
                   }
                 }
               }
@@ -358,7 +357,6 @@ export default {
                   if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
                     this.graphEdge.push(edge);
                     this.graph.addEdge(network, this.neighbor[j][k].name);
-                    this.edges.push(network, this.neighbor[j][k].name);
                   }
                 }
               }
@@ -367,7 +365,10 @@ export default {
               for (var j=0; j < this.devices.length; j++) {
                 for (var k=0; k < this.devices[j].interfaces.length; k++) {
                   if (this.devices[j].interfaces[k].ipv4_address) {
-                    if(this.getNetworkFromIP(this.devices[j].interfaces[k].ipv4_address, this.devices[j].interfaces[k].subnet) == this.networks[i]) {
+                    //this.edges = JSON.stringify(this.edges);
+                    //var check_edge = JSON.stringify([this.devices[j].interfaces[k].device_ip, this.networks[i]]);
+                    //alert(this.edges.indexOf(check_edge) === -1);
+                    if(this.getNetworkFromIP(this.devices[j].interfaces[k].ipv4_address, this.devices[j].interfaces[k].subnet) == this.networks[i] /*&& this.edges.indexOf(check_edge) === -1*/) {
                       var ifaces = this.devices[j].interfaces[k];
                       // Calculate link usage
                       const speed = this.calculate_usage_percent(
@@ -394,7 +395,6 @@ export default {
                       if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0 && !this.network_in_graph.includes(this.networks[i])) {
                         this.graphEdge.push(edge);
                         this.graph.addEdge(this.devices[j].interfaces[k].device_ip, this.networks[i]);
-                        this.edges.push(this.devices[j].interfaces[k].device_ip, this.networks[i]);
                       }
                     }
                   }
