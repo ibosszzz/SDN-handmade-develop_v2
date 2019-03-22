@@ -28,6 +28,8 @@ for device in devices:
         pass
     # set netflow
     interfaces = client.sdn01.device.find({'management_ip': device['management_ip']}, {'_id':0, 'interfaces': 1})
+    remote_connect.send('conf t\n')
+    sleep()
     for interface in interfaces:
         for iface in interface['interfaces']:
             if "ipv4_address" in iface:
