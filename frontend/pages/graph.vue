@@ -194,6 +194,14 @@ export default {
         }
       }
     },
+    not_in(net, edges){
+      for (var i=0; i<edges.length; i++){
+        if (edges[i][1] == net){
+          return false;
+        }
+      }
+      return true;
+    },
     updateGraph() {
       this.network_in_link = [];
       this.getNetworkInLink();
@@ -368,35 +376,41 @@ export default {
                     //this.edges = JSON.stringify(this.edges);
                     //var check_edge = JSON.stringify([this.devices[j].interfaces[k].device_ip, this.networks[i]]);
                     //alert(this.edges.indexOf(check_edge) === -1);
-                    if(this.getNetworkFromIP(this.devices[j].interfaces[k].ipv4_address, this.devices[j].interfaces[k].subnet) == this.networks[i] /*&& this.edges.indexOf(check_edge) === -1*/) {
-                      var ifaces = this.devices[j].interfaces[k];
-                      // Calculate link usage
-                      const speed = this.calculate_usage_percent(
-                        ifaces.bw_in_usage_persec,
-                        ifaces.bw_out_usage_persec,
-                        ifaces.speed
-                      );
-                      let color;
-                      if (speed < 50) {
-                        color = "rgb(144, 238, 144)";
-                      } else if (speed < 85) {
-                        color = "rgb(255, 165, 0)";
-                      } else {
-                        color = "rgb(255, 0, 0)";
+                    for (var a=0; a<this.edges.length; a++){
+                      //alert(this.edges[a]);
+                      if ((this.devices[j].interfaces[k].device_ip == this.edges[a][0] && this.networks[i] == this.edges[a][1]) || this.not_in(this.networks[i], this.edges)){
+                        if(this.getNetworkFromIP(this.devices[j].interfaces[k].ipv4_address, this.devices[j].interfaces[k].subnet) == this.networks[i] /*&& this.edges.indexOf(check_edge) === -1*/) {
+                        var ifaces = this.devices[j].interfaces[k];
+                        // Calculate link usage
+                        const speed = this.calculate_usage_percent(
+                          ifaces.bw_in_usage_persec,
+                          ifaces.bw_out_usage_persec,
+                          ifaces.speed
+                        );
+                        let color;
+                        if (speed < 50) {
+                          color = "rgb(144, 238, 144)";
+                        } else if (speed < 85) {
+                          color = "rgb(255, 165, 0)";
+                        } else {
+                          color = "rgb(255, 0, 0)";
+                        }
+                        const edge = {
+                          from: this.devices[j].interfaces[k].device_ip,
+                          to: this.networks[i],
+                          id: this.devices[j].interfaces[k].device_ip+this.networks[i],
+                          label: this.networks[i]+"/"+this.subnetToCidr(ifaces.subnet) +"("+ `${speed.toFixed(2)}%` + ")",
+                          color: { color, highlight: color },
+                          width: 1544000 / 400000
+                        }
+                        if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0 && !this.network_in_graph.includes(this.networks[i])) {
+                          this.graphEdge.push(edge);
+                          this.graph.addEdge(this.devices[j].interfaces[k].device_ip, this.networks[i]);
+                        }
                       }
-                      const edge = {
-                        from: this.devices[j].interfaces[k].device_ip,
-                        to: this.networks[i],
-                        id: this.devices[j].interfaces[k].device_ip+this.networks[i],
-                        label: this.networks[i]+"/"+this.subnetToCidr(ifaces.subnet) +"("+ `${speed.toFixed(2)}%` + ")",
-                        color: { color, highlight: color },
-                        width: 1544000 / 400000
-                      }
-                      if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0 && !this.network_in_graph.includes(this.networks[i])) {
-                        this.graphEdge.push(edge);
-                        this.graph.addEdge(this.devices[j].interfaces[k].device_ip, this.networks[i]);
                       }
                     }
+                    
                   }
                 }
               }
@@ -427,11 +441,13 @@ export default {
           this.checkGraphEdge = this.graphEdge;
         }
         else if (this.checkGraphEdge.length != this.graphEdge.length) {
+          //alert(this.checkGraphEdge.length+"  "+this.graphEdge.length);
           location.reload();
         }
         else {
           for (var i=0;i<this.graphEdge.length;i++) {
             if (this.graphEdge[i].from != this.checkGraphEdge[i].from || this.graphEdge[i].to != this.checkGraphEdge[i].to) {
+              //alert(this.checkGraphEdge.length+"  "+this.graphEdge.length);
               location .reload();
             }
           }
@@ -442,7 +458,7 @@ export default {
   async mounted() {
     // console.log(jsnx)
     this.graph = new jsnx.Graph();
-    this.interval = setInterval(() => this.fetchGraph(), 1000);
+    this.interval = setInterval(() => this.fetchGraph(), 2000);
     try {
       let res = await this.$axios.$get("device");
       this.devices = res.devices;
