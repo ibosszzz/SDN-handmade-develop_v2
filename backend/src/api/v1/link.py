@@ -11,7 +11,7 @@ class LinkView(HTTPMethodView):
             return json({"links": links, "status": "ok"}, dumps=dumps)
         elif len(_id) == 24:
             link = request.app.db['link_utilization'].get_by_id(_id)
-            return json({"links": link, "status": "ok"}, dumps=dumps)
-        links = request.app.db['link_utilization'].get_by_name(_id)
-        return json({"links": links, "status": "ok"}, dumps=dumps)
+            return json({"link": link, "status": "ok"}, dumps=dumps)
+        link = request.app.db['link_utilization'].get_by_name(_id)
+        return json({"link": link, "status": "ok"}, dumps=dumps)
 
