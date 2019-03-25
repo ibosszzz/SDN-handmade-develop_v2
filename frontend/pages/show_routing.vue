@@ -83,7 +83,8 @@ export default {
       router_in_graph : [],
       link_in_graph : [],
       check_switch : [],
-      edges : []
+      edges : [],
+      flow_routing : []
     };
   },
   components: {
@@ -101,9 +102,11 @@ export default {
       this.addlink = [];
       this.addlinkmask = [];
       this.updateGraph();
-      this.deviceID = this.getDeviceIDFromNetwork(this.source);
-      while (check) {
-        check = this.getNextHopIP();
+      if(!this.check_in_flow_routing()){
+        this.deviceID = this.getDeviceIDFromNetwork(this.source);
+        while (check) {
+          check = this.getNextHopIP();
+        }
       }
       //this.click = 0;
     },
@@ -139,6 +142,26 @@ export default {
       }
       this.eventName = "onClick";
       this.information = JSON.stringify(info, null, 2);
+    },
+    check_in_flow_routing(){
+      for (var i=0; i<this.flow_routing.length; i++){
+        var src_net = this.getNetworkFromIP(this.flow_routing[i].src_ip, this.getSubnetFromWildcard(this.flow_routing[i].src_wildcard));
+        var dst_net = this.getNetworkFromIP(this.flow_routing[i].dst_ip, this.getSubnetFromWildcard(this.flow_routing[i].dst_wildcard));
+        if (src_net == this.source && dst_net == this.destination){
+          for (var j=0; j<this.flow_routing[i].actions.length; j++){
+            for (var k=0; k<this.links.length; k++){
+              if (this.links[k].src_ip == this.flow_routing[i].actions[j].data || this.links[k].dst_ip == this.flow_routing[i].actions[j].data){
+                var ifaces = this.findInterfaces(this.links[k].src_node_id, this.links[k].dst_node_id, this.links[k].src_ip);
+                var addmask = ifaces.subnet;
+                this.addlink.push(this.links[k].src_ip, this.links[k].dst_ip);
+                this.addlinkmask.push(addmask, addmask);
+              }
+            }
+          }
+          return true;
+        }
+      }
+      return false;
     },
     getNetwork() {
       for (var i = 0; i < this.routes.length; i++) {
@@ -238,11 +261,14 @@ export default {
     },
     async fetchGraph() {
       this.neighbor = [];
+      this.flow_routing = [];
       try {
         let res = await this.$axios.$get("device");
         this.devices = res.devices;
         res = await this.$axios.$get("link");
         this.links = res.links;
+        res = await this.$axios.$get(`flow/routing`);
+        this.flow_routing = res.flows;
         let res2;
         let device;
         for (var i = 0; i < this.devices.length; i++) {
@@ -275,6 +301,13 @@ export default {
         }
       }
       return count;
+    },
+    getSubnetFromWildcard(wildcard){
+      wildcard = wildcard.split(".");
+      for (var i=0; i<wildcard.length; i++){
+        wildcard[i] = (255 - parseInt(wildcard[i])).toString();
+      }
+      return wildcard.join(".");
     },
     getNetworkInLink() {
       for (var i=0; i < this.links.length; i++) {
@@ -475,12 +508,10 @@ export default {
                       width: 1544000 / 400000
                     }
                     for (var a=0; a<this.link_in_graph.length; a++){
-                      //alert(this.link_in_graph[a][0])
-                      //alert(this.devices[j].interfaces[k].ipv4_address)
                       if (this.link_in_graph[a][0] == this.devices[j].device_ip && this.link_in_graph[a][2] == this.networks[i]){
                         this.check_switch.push(this.link_in_graph[a][1]);
                         edge.from = this.link_in_graph[a][1];
-                        this.link_in_graph.push(edge.from, edge.to);
+                        //this.link_in_graph.push(edge.from, edge.to);
                       }
                     }
                     if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
@@ -495,6 +526,8 @@ export default {
           };
         }
         if (this.click == 1){
+          //alert(this.addlink);
+          //alert(this.flow_routing[0].src_ip+" "+this.flow_routing[0].dst_ip);
           //alert(this.network_in_link);
           //alert(this.network_in_addlink);
           for (var i=0; i<this.devices.length; i++){
@@ -519,12 +552,14 @@ export default {
   async mounted() {
     // console.log(jsnx)
     this.graph = new jsnx.Graph();
-    this.interval = setInterval(() => this.fetchGraph(), 1000);
+    this.interval = setInterval(() => this.fetchGraph(), 3000);
     try {
       let res = await this.$axios.$get("device");
       this.devices = res.devices;
       res = await this.$axios.$get("link");
       this.links = res.links;
+      res = await this.$axios.$get(`flow/routing`);
+      this.flow_routing = res.flows;
       let res2;
       let device;
       for (var i = 0; i < this.devices.length; i++) {
@@ -541,6 +576,7 @@ export default {
           this.neighbor.push(res2.neighbor);
         }
       }
+
       this.getNetwork();
     } catch (e) {}
     this.form = {
