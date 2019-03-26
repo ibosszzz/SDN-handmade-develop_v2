@@ -21,15 +21,15 @@ for device in devices:
     elif output.decode("utf-8")[-1] == ">":
         print("User mode")
         remote_connect.send("enable\n")
-        sleep()
+        time.sleep(0.5)
         remote_connect.send(input()+"\n")
-        sleep()
+        time.sleep(0.5)
     else:
         pass
     # set snmp
     snmp_commands = ['conf t\n', 'snmp-server enable traps\n', 'snmp-server community public RO\n', 'snmp-server community private RW\n']
     for command in snmp_commands:
         remote_connect.send(command)
-        sleep()
+        time.sleep(0.5)
     
     ssh.close()
