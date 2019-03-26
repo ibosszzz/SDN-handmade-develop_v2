@@ -104,6 +104,7 @@ export default {
       this.updateGraph();
       if(!this.check_in_flow_routing()){
         this.deviceID = this.getDeviceIDFromNetwork(this.source);
+        //alert(this.deviceID);
         while (check) {
           check = this.getNextHopIP();
         }
@@ -190,7 +191,7 @@ export default {
       for (var i=0; i < this.routes.length; i++) {
         if (this.routes[i][0].device_id.$oid == this.deviceID) {
           for (var j=0; j < this.routes[i].length; j++) {
-            if (this.routes[i][j].dst == this.destination) {
+            if (this.routes[i][j].dst == this.getNetworkFromIP(this.destination, this.routes[i][j].mask) && this.routes[i][j].dst != "0.0.0.0") {
               if (this.routes[i][j].next_hop == "0.0.0.0") {
                 this.deviceID = this.getLink(this.routes[i][j].next_hop, this.routes[i][j].if_index);
                 return false;
@@ -210,6 +211,7 @@ export default {
       }
     },
     getLink (next_hop, if_index) {
+      //alert(next_hop+"   "+if_index+" "+this.deviceID);
       for (var i=0; i < this.links.length; i++) {
         var ifaces = this.findInterfaces(this.links[i].src_node_id, this.links[i].dst_node_id, this.links[i].src_ip);
         var addmask = ifaces.subnet;
