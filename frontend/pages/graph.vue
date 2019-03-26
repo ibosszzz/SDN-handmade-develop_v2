@@ -458,7 +458,7 @@ export default {
   async mounted() {
     // console.log(jsnx)
     this.graph = new jsnx.Graph();
-    this.interval = setInterval(() => this.fetchGraph(), 2000);
+    this.interval = setInterval(() => this.fetchGraph(), 3000);
     try {
       let res = await this.$axios.$get("device");
       this.devices = res.devices;
