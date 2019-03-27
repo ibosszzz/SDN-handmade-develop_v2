@@ -22,7 +22,7 @@ for device in devices:
         print("User mode")
         remote_connect.send("enable\n")
         time.sleep(0.5)
-        remote_connect.send(input()+"\n")
+        remote_connect.send(device['ssh_info']['secret']+"\n")
         time.sleep(0.5)
     else:
         pass
