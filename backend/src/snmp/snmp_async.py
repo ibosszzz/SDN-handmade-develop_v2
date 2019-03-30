@@ -219,6 +219,7 @@ async def get_cdp(host, community, port=161):
         'version': ObjectType(ObjectIdentity('1.3.6.1.4.1.9.9.23.1.2.1.1.5')),
         'name': ObjectType(ObjectIdentity('1.3.6.1.4.1.9.9.23.1.2.1.1.6')),
         'port': ObjectType(ObjectIdentity('1.3.6.1.4.1.9.9.23.1.2.1.1.7')),
+        'capabilities': ObjectType(ObjectIdentity('1.3.6.1.4.1.9.9.23.1.2.1.1.9')),
     }
 
     extras = {
