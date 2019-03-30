@@ -293,7 +293,7 @@ export default {
         // show switch
         for (var i=0; i < this.neighbor.length; i++){
           for (var j=0; j< this.neighbor[i].length; j++){
-            if (!nodes_[this.neighbor[i][j].name] && this.neighbor[i][j].ip_addr == null){
+            if (!nodes_[this.neighbor[i][j].name] && (this.neighbor[i][j].capabilities == "0x00000028" || this.neighbor[i][j].ip_addr == null)){
               let label = this.neighbor[i][j].name;
               nodes_[this.neighbor[i][j].name] = {
                 id: this.neighbor[i][j].name,
@@ -351,7 +351,7 @@ export default {
             this.net.push(this.networks[i]);
             for (var j=0; j < this.neighbor.length; j++){
               for (var k=0; k < this.neighbor[j].length; k++){
-                if (this.neighbor[j][k].ip_addr == null){
+                if (this.neighbor[j][k].capabilities == "0x00000028" || this.neighbor[j][k].ip_addr == null){
                   let color = "rgb(144, 238, 144)";
                   var network = this.getNetworkFromInterface(this.neighbor[j][k].device_ip, this.neighbor[j][k].local_ifindex);
                   this.network_in_graph.push(network);
@@ -422,7 +422,7 @@ export default {
           if (!this.devices[i].is_ssh_connect){
             for (var j=0; j<this.neighbor.length; j++){
               for (var k=0; k<this.neighbor[j].length; k++){
-                if (this.neighbor[j][k].ip_addr == null && this.neighbor[j][k].device_ip == this.devices[i].device_ip){
+                if ((this.neighbor[j][k].capabilities == "0x00000028" || this.neighbor[j][k].ip_addr == null) && this.neighbor[j][k].device_ip == this.devices[i].device_ip){
                   delete nodes_[this.neighbor[j][k].name];
                 }
               }
