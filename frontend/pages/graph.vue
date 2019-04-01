@@ -133,6 +133,24 @@ export default {
         }
       }
     },
+    hex_to_int(hex){
+      return parseInt(hex, 16);
+    },
+    check_switch(hex){
+      //alert(hex);
+      if (this.hex_to_int(hex)%2 == 0){
+        //alert ("switch");
+        return true;
+      }
+      else if (hex.includes("Switch") && !hex.includes("Router")){
+        //alert ("switch");
+        return true;
+      }
+      else{
+        //alert("Router");
+        return false;
+      }
+    },
     getNetworkFromIP(ip, mask) {
       //alert(ip+", "+mask);
       var check = "";
@@ -293,7 +311,8 @@ export default {
         // show switch
         for (var i=0; i < this.neighbor.length; i++){
           for (var j=0; j< this.neighbor[i].length; j++){
-            if (!nodes_[this.neighbor[i][j].name] && (this.neighbor[i][j].capabilities == "0x00000028" || this.neighbor[i][j].ip_addr == null)){
+            if (this.check_switch(this.neighbor[i][j].capabilities)){
+              //alert(!this.neighbor[i][j].capabilities.includes("Router"));
               let label = this.neighbor[i][j].name;
               nodes_[this.neighbor[i][j].name] = {
                 id: this.neighbor[i][j].name,
@@ -348,10 +367,9 @@ export default {
               color: "#FFF"
             };
             id++;
-            this.net.push(this.networks[i]);
             for (var j=0; j < this.neighbor.length; j++){
               for (var k=0; k < this.neighbor[j].length; k++){
-                if (this.neighbor[j][k].capabilities == "0x00000028" || this.neighbor[j][k].ip_addr == null){
+                if (this.check_switch(this.neighbor[j][k].capabilities)){
                   let color = "rgb(144, 238, 144)";
                   var network = this.getNetworkFromInterface(this.neighbor[j][k].device_ip, this.neighbor[j][k].local_ifindex);
                   this.network_in_graph.push(network);
@@ -363,6 +381,7 @@ export default {
                     width: 1544000 / 400000
                   }
                   if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
+                    this.net.push(network);
                     this.graphEdge.push(edge);
                     this.graph.addEdge(network, this.neighbor[j][k].name);
                   }
@@ -404,6 +423,7 @@ export default {
                           width: 1544000 / 400000
                         }
                         if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0 && !this.network_in_graph.includes(this.networks[i])) {
+                          this.net.push(this.networks[i]);
                           this.graphEdge.push(edge);
                           this.graph.addEdge(this.devices[j].interfaces[k].device_ip, this.networks[i]);
                         }
@@ -422,7 +442,8 @@ export default {
           if (!this.devices[i].is_ssh_connect){
             for (var j=0; j<this.neighbor.length; j++){
               for (var k=0; k<this.neighbor[j].length; k++){
-                if ((this.neighbor[j][k].capabilities == "0x00000028" || this.neighbor[j][k].ip_addr == null) && this.neighbor[j][k].device_ip == this.devices[i].device_ip){
+                if (this.check_switch(this.neighbor[j][k].capabilities)
+                 && this.neighbor[j][k].device_ip == this.devices[i].device_ip){
                   delete nodes_[this.neighbor[j][k].name];
                 }
               }
@@ -435,6 +456,14 @@ export default {
             delete nodes_[this.devices[i].device_ip];
           }
         }
+        //alert(this.edges.length);
+        for (var i=0;i<this.networks.length;i++){
+          if (!this.net.includes(this.networks[i])){
+            delete nodes_[this.networks[i]];
+          }
+        }
+        //alert(this.networks);
+        //alert(this.network_in_graph);
         this.nodes_ = nodes_;
         this.graphNode = Object.values(nodes_);
         if (this.checkGraphEdge.length == 0) {
@@ -458,7 +487,7 @@ export default {
   async mounted() {
     // console.log(jsnx)
     this.graph = new jsnx.Graph();
-    this.interval = setInterval(() => this.fetchGraph(), 3000);
+    this.interval = setInterval(() => this.fetchGraph(), 5000);
     try {
       let res = await this.$axios.$get("device");
       this.devices = res.devices;
