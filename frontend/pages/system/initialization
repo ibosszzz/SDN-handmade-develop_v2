@@ -1,0 +1,28 @@
+<template>
+  <div class="row">
+    <div class="col-12">
+      <form @submit.prevent="onSubmit" method="post">
+        <div class="card">
+          <div class="card-header">Initialization</div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-4">
+                <div class="form-group">
+                  <label for="name" class="form-label">Management IP</label>
+                  <input type="text" class="form-control" name="name" placeholder="Controller IP">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <div class="row">
+              <div class="col-md-12">
+                <button type="submit" class="btn btn-primary">Initialization</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</template>
