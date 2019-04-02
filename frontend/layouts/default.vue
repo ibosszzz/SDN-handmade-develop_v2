@@ -39,6 +39,7 @@
                   <i class="fe fe-box"></i> System</a>
                 <div class="dropdown-menu dropdown-menu-arrow">
                   <!-- <router-link data-toggle="false" active-class="active" class="dropdown-item " to="/system/info" exact>View</router-link> -->
+                  <router-link data-toggle="false" active-class="active" class="dropdown-item " to="/system/initialization" exact>Initialization</router-link>
                   <router-link data-toggle="false" active-class="active" class="dropdown-item " to="/system/setting" exact>Setting</router-link>
                 </div>
               </li>
