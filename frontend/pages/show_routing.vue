@@ -107,6 +107,7 @@ export default {
         //alert(this.deviceID);
         while (check) {
           check = this.getNextHopIP();
+          //alert(this.deviceID);
         }
       }
       //this.click = 0;
@@ -143,6 +144,20 @@ export default {
       }
       this.eventName = "onClick";
       this.information = JSON.stringify(info, null, 2);
+    },
+    hex_to_int(hex){
+      return parseInt(hex, 16);
+    },
+    check_switchs(hex){
+      if (this.hex_to_int(hex)%2 == 0){
+        return true;
+      }
+      else if (hex.includes("Switch") && !hex.includes("Router")){
+        return true;
+      }
+      else{
+        return false;
+      }
     },
     check_in_flow_routing(){
       for (var i=0; i<this.flow_routing.length; i++){
@@ -191,7 +206,7 @@ export default {
       for (var i=0; i < this.routes.length; i++) {
         if (this.routes[i][0].device_id.$oid == this.deviceID) {
           for (var j=0; j < this.routes[i].length; j++) {
-            if (this.routes[i][j].dst == this.getNetworkFromIP(this.destination, this.routes[i][j].mask) && this.routes[i][j].dst != "0.0.0.0") {
+            if (this.routes[i][j].dst == this.getNetworkFromIP(this.destination, this.routes[i][j].mask)) {
               if (this.routes[i][j].next_hop == "0.0.0.0") {
                 this.deviceID = this.getLink(this.routes[i][j].next_hop, this.routes[i][j].if_index);
                 return false;
@@ -451,7 +466,7 @@ export default {
         // show switch
         for (var i=0; i < this.neighbor.length; i++){
           for (var j=0; j< this.neighbor[i].length; j++){
-            if (!nodes_[this.neighbor[i][j].name] && this.neighbor[i][j].ip_addr == null && this.click == 1){
+            if (this.check_switchs(this.neighbor[i][j].capabilities) && this.click == 1){
               let label = this.neighbor[i][j].name;
               nodes_[this.neighbor[i][j].name] = {
                 id: this.neighbor[i][j].name,
@@ -461,19 +476,20 @@ export default {
               }
             };
             id++;
-            if (this.neighbor[i][j].ip_addr == null && this.click == 1){
+            if (this.check_switchs(this.neighbor[i][j].capabilities) && this.click == 1){
               let color = "rgb(144, 238, 144)";
-              const edge = {
-                from: this.neighbor[i][j].name,
-                to: this.neighbor[i][j].device_ip,
-                id: this.neighbor[i][j].name+this.neighbor[i][j].device_ip,
-                color: { color, highlight: color },
-                width: 1544000 / 400000
-              }
+              
               for (var a=0; a<this.devices.length; a++){
                 if (this.devices[a].device_ip == this.neighbor[i][j].device_ip){
                   var ifaces = this.devices[a].interfaces[this.neighbor[i][j].local_ifindex-1];
                   var net = this.getNetworkFromIP(ifaces.ipv4_address, ifaces.subnet);
+                  const edge = {
+                    from: this.neighbor[i][j].name,
+                    to: this.neighbor[i][j].device_ip,
+                    id: this.neighbor[i][j].name+this.neighbor[i][j].device_ip,
+                    color: { color, highlight: color },
+                    width: 1544000 / 400000
+                  }
                   if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
                     this.graphEdge.push(edge);
                     this.graph.addEdge(this.neighbor[i][j].name, this.neighbor[i][j].device_ip);
@@ -513,6 +529,7 @@ export default {
                       if (this.link_in_graph[a][0] == this.devices[j].device_ip && this.link_in_graph[a][2] == this.networks[i]){
                         this.check_switch.push(this.link_in_graph[a][1]);
                         edge.from = this.link_in_graph[a][1];
+                        edge.id = this.link_in_graph[a][1]+this.networks[i]
                         //this.link_in_graph.push(edge.from, edge.to);
                       }
                     }
