@@ -28,6 +28,8 @@ class DeviceRepository(Repository):
             'management_ip': 1,
             'interfaces': 1
         }
+    def get_interface(self, management_ip):
+        return self.model.find({'management_ip': management_ip}, {'_id':0, 'interfaces': 1})
 
     def get_oid_by_name(self, device_name):
         self.model.create_index([('name', 'text')])
