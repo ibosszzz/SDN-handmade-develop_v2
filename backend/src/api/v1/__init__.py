@@ -7,6 +7,7 @@ from .link import LinkView
 from .neighbor import NeighborView
 from .path import PathView
 from .routing import RoutingView
+from .initialization import InitializationView
 
 api_v1 = Blueprint('link', url_prefix='/')
 
@@ -28,3 +29,5 @@ api_v1.add_route(RoutingView.as_view(), '/routes')
 api_v1.add_route(RoutingView.as_view(), '/routes/<device_id>')
 
 api_v1.add_route(NeighborView.as_view(), '/neighbor/<device_id>')
+
+api_v1.add_route(InitializationView.as_view(), '/initialization')
