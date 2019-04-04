@@ -84,7 +84,8 @@ export default {
       link_in_graph : [],
       check_switch : [],
       edges : [],
-      flow_routing : []
+      flow_routing : [],
+      net_switch : []
     };
   },
   components: {
@@ -206,7 +207,11 @@ export default {
       for (var i=0; i < this.routes.length; i++) {
         if (this.routes[i][0].device_id.$oid == this.deviceID) {
           for (var j=0; j < this.routes[i].length; j++) {
-            if (this.routes[i][j].dst == this.getNetworkFromIP(this.destination, this.routes[i][j].mask)) {
+            if (this.routes[i][j].dst == "0.0.0.0" && this.routes[i][j].mask == "0.0.0.0"){
+              var next_hop = this.routes[i][j].next_hop;
+              var if_index = this.routes[i][j].if_index;
+            }
+            else if (this.routes[i][j].dst == this.getNetworkFromIP(this.destination, this.routes[i][j].mask)) {
               if (this.routes[i][j].next_hop == "0.0.0.0") {
                 this.deviceID = this.getLink(this.routes[i][j].next_hop, this.routes[i][j].if_index);
                 return false;
@@ -216,14 +221,18 @@ export default {
               }
             }
           }
+          /*
           for (var j=0; j < this.routes[i].length; j++) {
             if (this.routes[i][j].mask == "255.255.255.255" && this.source != this.destination) {
               this.deviceID = this.getLink(this.routes[i][j].next_hop, this.routes[i][j].if_index);
               return false;
             }
           }
+          */
         }
       }
+      this.deviceID = this.getLink(next_hop, if_index);
+      return true;
     },
     getLink (next_hop, if_index) {
       //alert(next_hop+"   "+if_index+" "+this.deviceID);
@@ -462,7 +471,6 @@ export default {
             id++;
           }
         });
-        //alert(this.router_in_graph);
         // show switch
         for (var i=0; i < this.neighbor.length; i++){
           for (var j=0; j< this.neighbor[i].length; j++){
@@ -513,10 +521,29 @@ export default {
               color: "#FFF"
             };
             id++;
+            for (var a=0; a<this.link_in_graph.length; a++){
+              if (this.link_in_graph[a][2] == this.networks[i] && !this.net_switch.includes(this.networks[i])){
+                this.check_switch.push(this.link_in_graph[a][1]);
+                let color = "rgb(144, 238, 144)";
+                const edge = {
+                  from: this.link_in_graph[a][1],
+                  to: this.networks[i],
+                  id: this.link_in_graph[a][0]+this.networks[i],
+                  color: { color, highlight: color },
+                  width: 1544000 / 400000
+                }
+                if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
+                  this.graphEdge.push(edge);
+                  this.graph.addEdge(edge.from, this.networks[i]);
+                  this.edges.push(edge.from, this.networks[i]);
+                  this.net_switch.push(this.networks[i]);
+                }
+              }
+            }
             for (var j=0; j < this.devices.length; j++) {
               for (var k=0; k < this.devices[j].interfaces.length; k++) {
                 if (this.devices[j].interfaces[k].ipv4_address) {
-                  if(this.getNetworkFromIP(this.devices[j].interfaces[k].ipv4_address, this.devices[j].interfaces[k].subnet) == this.networks[i]) {
+                  if(this.getNetworkFromIP(this.devices[j].interfaces[k].ipv4_address, this.devices[j].interfaces[k].subnet) == this.networks[i] && !this.net_switch.includes(this.networks[i])) {
                     let color = "rgb(144, 238, 144)";
                     const edge = {
                       from: this.devices[j].interfaces[k].device_ip,
@@ -525,14 +552,7 @@ export default {
                       color: { color, highlight: color },
                       width: 1544000 / 400000
                     }
-                    for (var a=0; a<this.link_in_graph.length; a++){
-                      if (this.link_in_graph[a][0] == this.devices[j].device_ip && this.link_in_graph[a][2] == this.networks[i]){
-                        this.check_switch.push(this.link_in_graph[a][1]);
-                        edge.from = this.link_in_graph[a][1];
-                        edge.id = this.link_in_graph[a][1]+this.networks[i]
-                        //this.link_in_graph.push(edge.from, edge.to);
-                      }
-                    }
+                    
                     if (this.graphEdge.map(function(e) { return e.id; }).indexOf(edge.id) < 0) {
                       this.graphEdge.push(edge);
                       this.graph.addEdge(edge.from, this.networks[i]);
@@ -545,20 +565,30 @@ export default {
           };
         }
         if (this.click == 1){
-          //alert(this.addlink);
-          //alert(this.flow_routing[0].src_ip+" "+this.flow_routing[0].dst_ip);
-          //alert(this.network_in_link);
-          //alert(this.network_in_addlink);
+          //alert(this.edges);
           for (var i=0; i<this.devices.length; i++){
             if (this.count(this.edges, this.devices[i].device_ip) < 2){
               delete nodes_[this.devices[i].device_ip];
             }
           }
-          //alert(this.link_in_graph)
-          //alert(this.check_switch)
+          var check = [];
+          //alert(this.check_switch);
           for (var i=0; i<this.check_switch.length;i++){
             if (this.count(this.check_switch, this.check_switch[i]) < 2){
               delete nodes_[this.check_switch[i]];
+            }
+            else if (!check.includes(this.check_switch[i])){
+              check.push(this.check_switch[i]);
+              for (j=0;j<this.edges.length;j=j+2){
+                if (this.check_switch[i] == this.edges[j] && this.networks.includes(this.edges[j+1])){
+                  check.push(this.check_switch[i]);
+                }
+              }
+            }
+          }
+          for (var i=0; i<check.length;i++){
+            if (this.count(check, check[i]) < 2){
+              delete nodes_[check[i]];
             }
           }
         }
@@ -571,7 +601,7 @@ export default {
   async mounted() {
     // console.log(jsnx)
     this.graph = new jsnx.Graph();
-    this.interval = setInterval(() => this.fetchGraph(), 3000);
+    this.interval = setInterval(() => this.fetchGraph(), 5000);
     try {
       let res = await this.$axios.$get("device");
       this.devices = res.devices;
