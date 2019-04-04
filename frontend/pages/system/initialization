@@ -40,7 +40,7 @@ export default {
   },
   methods: {
     async onSubmit(n) {
-      const res = await this.$axios.$install("initialization", this.form);
+      const res = await this.$axios.$get("initialization", this.form);
       if (res.success === true) {
         swal("Successful", "Initialization", "success")
       } else {
