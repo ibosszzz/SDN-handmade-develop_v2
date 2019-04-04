@@ -9,9 +9,6 @@ from repository import DeviceRepository
 
 class InitializationView(HTTPMethodView):
     def get(self, request):
-        return json({"success": True, "message": "Test"})
-
-    def install(self, request):
         device_repo = request.app.db['device']
         devices = device_repo.get_all()
 
