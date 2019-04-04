@@ -21,10 +21,7 @@ class InitializationView(HTTPMethodView):
             ssh.connect(device['management_ip'], port=22, username=device['ssh_info']['username'], password=device['ssh_info']['password'])
             remote_connect = ssh.invoke_shell()
             output = remote_connect.recv(65535)
-            if output.decode("utf-8")[-1] == "#":
-                #print("Privileged mode")
-            elif output.decode("utf-8")[-1] == ">":
-                #print("User mode")
+            if output.decode("utf-8")[-1] == ">":
                 remote_connect.send("enable\n")
                 time.sleep(0.5)
                 remote_connect.send(device['ssh_info']['secret']+"\n")
@@ -47,10 +44,7 @@ class InitializationView(HTTPMethodView):
             ssh.connect(device['management_ip'], port=22, username=device['ssh_info']['username'], password=device['ssh_info']['password'])
             remote_connect = ssh.invoke_shell()
             output = remote_connect.recv(65535)
-            if output.decode("utf-8")[-1] == "#":
-                #print("Privileged mode")
-            elif output.decode("utf-8")[-1] == ">":
-                #print("User mode")
+            if output.decode("utf-8")[-1] == ">":
                 remote_connect.send("enable\n")
                 time.sleep(0.5)
                 remote_connect.send(device['ssh_info']['secret']+"\n")
