@@ -8,16 +8,7 @@ from sanic.views import HTTPMethodView
 from repository import DeviceRepository
 
 class InitializationView(HTTPMethodView):
-    def patch(self, request):
-        inter = []
-        device_repo = request.app.db['device']
-        interfaces = device_repo.get_interface("192.168.0.1")
-        a = type(interfaces)
-        for iface in interfaces:
-            inter.append(iface)
-            return json({"success":True, "data": a})
-    
-    def post(self, request):
+    def get(self, request):
         device_repo = request.app.db['device']
         devices = device_repo.get_all()
 
@@ -41,8 +32,10 @@ class InitializationView(HTTPMethodView):
                 time.sleep(0.5)
             
             ssh.close()
-
-        time.sleep(30)
+        return json({"success": True, "message": "Initialization SNMP Success"})
+    def post(self, request):
+        device_repo = request.app.db['device']
+        devices = device_repo.get_all()
 
         for device in devices:
             ssh = paramiko.SSHClient()
@@ -62,11 +55,11 @@ class InitializationView(HTTPMethodView):
             remote_connect.send('conf t\n')
             time.sleep(0.5)
             for interface in interfaces:
-                #for iface in interface['interfaces']:
-                if "ipv4_address" in iface:
-                    for command in ['interface '+interface["description"]+'\n', 'ip policy route-map SDN-handmade\n', 'ip route-cache flow\n', 'exit\n']:
-                        remote_connect.send(command)
-                        time.sleep(0.5)
+                for iface in interface['interfaces']:
+                    if "ipv4_address" in iface:
+                        for command in ['interface '+iface["description"]+'\n', 'ip policy route-map SDN-handmade\n', 'ip route-cache flow\n', 'exit\n']:
+                            remote_connect.send(command)
+                            time.sleep(0.5)
             ip = request.json['management_ip'] #ip management device
             port = '23456'
             for command in ['ip flow-export destination '+ip+' '+port+'\n', 'ip flow-export version 9\n', 'ip flow-cache timeout active 1\n', 'ip flow-cache timeout inactive 15\n', 'ip flow-export template refresh-rate 1\n']:
@@ -75,5 +68,4 @@ class InitializationView(HTTPMethodView):
 
             ssh.close()
 
-        return json({"success": True, "message": "Initialization Success"})
-        
+        return json({"success": True, "message": "Initialization Net_Flow Success"})    
