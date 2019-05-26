@@ -40,7 +40,7 @@ export default {
   },
   methods: {
     async onSubmit(n) {
-      const res = await this.$axios.$get("initialization", this.form);
+      const res = await this.$axios.$post("initialization", this.form);
       if (res.success === true) {
         swal("Successful", "Initialization", "success")
       } else {
