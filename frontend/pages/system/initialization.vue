@@ -16,8 +16,11 @@
           </div>
           <div class="card-footer">
             <div class="row">
-              <div class="col-md-12">
-                <button type="submit" class="btn btn-primary">Initialization</button>
+              <div class="col-md-1">
+                <button v-on:click="snmp" type="button" class="btn btn-primary">Set SNMP</button>
+              </div>
+              <div class="col-md-1">
+                <button type="submit" class="btn btn-primary">Set Net_Flow</button>
               </div>
             </div>
           </div>
@@ -42,7 +45,15 @@ export default {
     async onSubmit(n) {
       const res = await this.$axios.$post("initialization", this.form);
       if (res.success === true) {
-        swal("Successful", "Initialization", "success")
+        swal("Successful", res.message, "success")
+      } else {
+        swal("Something went wrong !")
+      }
+    },
+    snmp: async function() {
+      const res = await this.$axios.$get("initialization", this.form);
+      if (res.success === true) {
+        swal("Successful", res.message, "success")
       } else {
         swal("Something went wrong !")
       }
