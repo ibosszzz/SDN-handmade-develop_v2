@@ -192,30 +192,29 @@ class FlowRoutingRepository(Repository):
             action['device_id'] = ObjectId(action['device_id'])
             new_flow_actions.append(action['device_id'])
 
-        for old_flow_action in old_flow['actions']:
-            if old_flow_action['device_id'] not in new_flow_actions:
-                wait_remove.append(old_flow_action)
-        print(wait_remove)
-        remove_old_device = {
-            'name': 'remove_device',
-            'src_ip': '0.0.0.0',
-            'src_port': 'any',
-            'src_wildcard': '0.0.0.0',
-            'dst_ip': '0.0.0.0',
-            'dst_port': 'any',
-            'dst_wildcard': '0.0.0.0',
-            'actions': wait_remove,
-            'flow_id': old_flow['flow_id'],
-            'info': {
-                'submit_from': {
-                    'type': PolicyRoute.TYPE_STATIC,
-                    'user': 'Unknown - Todo Implement'
-                },
-                'status': PolicyRoute.STATUS_WAIT_REMOVE
-            }
-        }
-
         if old_flow:
+            for old_flow_action in old_flow['actions']:
+                if old_flow_action['device_id'] not in new_flow_actions:
+                    wait_remove.append(old_flow_action)
+            print(wait_remove)
+            remove_old_device = {
+                'name': 'remove_device',
+                'src_ip': '0.0.0.0',
+                'src_port': 'any',
+                'src_wildcard': '0.0.0.0',
+                'dst_ip': '0.0.0.0',
+                'dst_port': 'any',
+                'dst_wildcard': '0.0.0.0',
+                'actions': wait_remove,
+                'flow_id': old_flow['flow_id'],
+                'info': {
+                    'submit_from': {
+                        'type': PolicyRoute.TYPE_STATIC,
+                        'user': 'Unknown - Todo Implement'
+                    },
+                    'status': PolicyRoute.STATUS_WAIT_REMOVE
+                }
+            }
             self.model.update_one({
                 '_id': old_flow['_id']
             }, {'$set': {
