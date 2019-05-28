@@ -185,8 +185,35 @@ class FlowRoutingRepository(Repository):
         flow_routing['created_at'] = now
         flow_routing['updated_at'] = now
 
+        new_flow_actions = []
+        wait_remove = []
+
         for action in flow_routing['new_flow']['actions']:
             action['device_id'] = ObjectId(action['device_id'])
+            new_flow_actions.append(action['device_id'])
+
+        for old_flow_action in old_flow['actions']:
+            if old_flow_action['device_id'] not in new_flow_actions:
+                wait_remove.append(old_flow_action)
+        print(wait_remove)
+        remove_old_device = {
+            'name': 'remove_device',
+            'src_ip': '0.0.0.0',
+            'src_port': 'any',
+            'src_wildcard': '0.0.0.0',
+            'dst_ip': '0.0.0.0',
+            'dst_port': 'any',
+            'dst_wildcard': '0.0.0.0',
+            'actions': wait_remove,
+            'flow_id': old_flow['flow_id'],
+            'info': {
+                'submit_from': {
+                    'type': PolicyRoute.TYPE_STATIC,
+                    'user': 'Unknown - Todo Implement'
+                },
+                'status': PolicyRoute.STATUS_WAIT_REMOVE
+            }
+        }
 
         if old_flow:
             self.model.update_one({
@@ -195,6 +222,7 @@ class FlowRoutingRepository(Repository):
                 'new_flow': flow_routing['new_flow'],
                 'info': flow_routing['info']
             }})
+            self.model.insert_one(remove_old_device)
             return True
 
         self.model.insert_one(flow_routing)
