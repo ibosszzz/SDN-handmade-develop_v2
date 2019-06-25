@@ -11,5 +11,5 @@ matplotlib==2.2.2
 netaddr==0.7.19
 # scipy==1.0.0
 # redis==2.10.6
-sanic==0.7.0
+sanic>=0.7.0
 Sanic-Cors==0.9.3
