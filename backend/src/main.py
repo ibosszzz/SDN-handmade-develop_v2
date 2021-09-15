@@ -4,8 +4,8 @@ import logging
 import os
 
 import matplotlib
-
-import database
+#WHERE IS YOUR WORKER HUH?
+import database #done commenting
 
 
 def main():

@@ -5,7 +5,7 @@ import datetime
 from repository import CopiedRouteRepository
 import ipaddress
 
-
+#dealing with command line interface of SDN
 class CLIController(SDNCommand):
     _COMPLETE_SHOW = ('device', 'topology'
                       , 'version')
