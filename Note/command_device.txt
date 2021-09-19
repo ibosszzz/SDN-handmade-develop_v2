@@ -1,0 +1,21 @@
+[VPC]
+ip 172.16.1.10 /24 172.16.1.1
+
+[SSH]
+ip domain-name pcn
+crypto key generate rsa mod 1024
+1024
+ip ssh version 2
+username cisco password cisco
+enable password cisco
+line vty 0 4
+transport input ssh
+login local
+
+
+[Switch1]
+hostname S1
+int vlan 1
+ip add 172.16.1.2 255.255.255.0
+no shut
+ip default-ga 172.16.1.1
