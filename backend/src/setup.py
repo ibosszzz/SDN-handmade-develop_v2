@@ -1,7 +1,7 @@
 import paramiko
 import time
 from pymongo import MongoClient
-
+#THREADS & VERIFY CONFIGURATION
 client = MongoClient('localhost', 27017)
 devices = client.sdn01.device.find() #client.(database).(collection).find()
 
