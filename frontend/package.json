@@ -15,7 +15,7 @@
   "dependencies": {
     "@nuxtjs/axios": "^5.3.1",
     "jsnetworkx": "^0.3.4",
-    "moment-timezone": "^0.5.16",
+    "moment-timezone": "^0.5.35",
     "nuxt": "^1.0.0",
     "sweetalert": "^2.1.0",
     "vis": "^4.21.0",
